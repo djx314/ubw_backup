@@ -5,7 +5,7 @@
 		<!-- encoders 作用是将logger事件转换成字节数组，并将字节数组写入到输出流 -->
 		<encoder>
 			<!-- 控制台输出编码 -->
-			<charset>gbk</charset>
+			<charset>utf-8</charset>
 			<!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度 %msg：日志消息，%n是换行符 -->
 			<pattern>%-7relative %d{HH:mm:ss.SSS} [%thread] %logger%n[%level] %msg%n</pattern>
 		</encoder>
@@ -49,7 +49,7 @@
 		<!--<appender-ref ref="FILE" />-->
 	</root>
     <logger name="slick.jdbc.JdbcBackend.statement" level="debug" additivity="false">
-		<!--<appender-ref ref="STDOUT" />-->
+		<appender-ref ref="STDOUT" />
 	</logger>
 	<logger name="play" level="info" additivity="false">
 		<appender-ref ref="STDOUT" />

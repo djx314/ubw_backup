@@ -24,7 +24,8 @@ case class MenuItemUtil()(implicit request: Request[AnyContent]) {
   val miniItems =
     CaseMiniMenu(MiniMenu("根目录", None, FileType.folder, true), List("viewer"), List(
       CaseMiniMenu(MiniMenu("喵了个咪", None, FileType.folder, true), List("viewer"), List(
-        CaseMiniMenu(MiniMenu("测试页面", Option(controllers.routes.Assets.at("2333.html").url), FileType.leaf, false), List("viewer"))
+        CaseMiniMenu(MiniMenu("测试页面", Option(controllers.routes.Assets.at("2333.html").url), FileType.leaf, false), List("viewer")),
+        CaseMiniMenu(MiniMenu("新建表测试", Option(controllers.routes.DataCreateController.list.url), FileType.leaf, false), List("viewer"))
       ))
     ))
 
