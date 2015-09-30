@@ -1,0 +1,19 @@
+<!-- ko if: data[tree.store.fileTypeProperty]() === 'folder' -->
+	<!-- ko foreach: { data: tree.store.viewData[data[tree.store.idProperty]()], as: 'nodeViewData'} -->
+		<div>
+			<div class="treeFolderNode" data-bind="click: function(data, event) { nodeViewData.isOpened(! nodeViewData.isOpened()); }">
+				<!-- ko component: { 'name': 'archer-tree-node', 'params': { 'data': $component.data, 'tree': $component.tree } } --><!-- /ko -->
+			</div>
+			<div class="nodeChildren" data-bind="slideVisible: nodeViewData.isOpened()">
+				<!-- ko foreach: { data: $component.tree.store.getChildren($component.data), as: 'eachLeaf'} -->
+					<div data-bind="component: { 'name': 'archer-tree-item', 'params': { 'data': eachLeaf, 'tree': $component.tree } }">
+					</div>
+				<!-- /ko -->
+			</div>
+		</div>
+	<!-- /ko -->
+<!-- /ko -->
+<!-- ko if: data[tree.store.fileTypeProperty]() === 'leaf' -->
+	<div data-bind="component: { 'name': 'archer-tree-node', 'params': { 'data': data, 'tree': tree } }">
+	</div>
+<!-- /ko -->

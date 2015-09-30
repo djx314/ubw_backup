@@ -3,22 +3,33 @@ import Keys._
 import org.xarcher.sbt.CustomSettings
 import com.typesafe.sbt.SbtGit._
 
-object enuma extends Build {
+object ubw extends Build {
   
   val initPrintln = """
-                                                     _   _         _     
-                                                    | | (_)       | |    
-  ___   _ __    _   _   _ __ ___     __ _      ___  | |  _   ___  | |__  
- / _ \ | '_ \  | | | | | '_ ` _ \   / _` |    / _ \ | | | | / __| | '_ \ 
-|  __/ | | | | | |_| | | | | | | | | (_| |   |  __/ | | | | \__ \ | | | |
- \___| |_| |_|  \__,_| |_| |_| |_|  \__,_|    \___| |_| |_| |___/ |_| |_|
+ _   _         _  _             _  _             _ 
+| | | | _ __  | |(_) _ __ ___  (_)| |_  ___   __| |
+| | | || '_ \ | || || '_ ` _ \ | || __|/ _ \ / _` |
+| |_| || | | || || || | | | | || || |_|  __/| (_| |
+ \___/ |_| |_||_||_||_| |_| |_||_| \__|\___| \__,_|
+
+ ____   _             _       
+| __ ) | |  __ _   __| |  ___ 
+|  _ \ | | / _` | / _` | / _ \
+| |_) || || (_| || (_| ||  __/
+|____/ |_| \__,_| \__,_| \___|
+
+__        __            _         
+\ \      / /___   _ __ | | __ ___ 
+ \ \ /\ / // _ \ | '__|| |/ // __|
+  \ V  V /| (_) || |   |   < \__ \
+   \_/\_/  \___/ |_|   |_|\_\|___/
 """
   println(initPrintln)
 
   lazy val playVersion = play.core.PlayVersion.current
   val poiVersion = "3.13"
 
-  lazy val enuma = (project in file("."))
+  lazy val ubw = (project in file("."))
   //play
   .enablePlugins(play.sbt.PlayScala)
   //play end
@@ -28,7 +39,7 @@ object enuma extends Build {
   //common settings
   .settings(CustomSettings.customSettings: _*)
   .settings(
-    name := "enuma",
+    name := "ubw",
     version := "0.0.1",
     if (org.xarcher.sbt.OSName.isWindows)
       initialCommands in console += """ammonite.repl.Repl.run("repl.frontEnd() = ammonite.repl.frontend.FrontEnd.JLineWindows");"""
