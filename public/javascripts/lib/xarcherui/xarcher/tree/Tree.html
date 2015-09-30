@@ -1,0 +1,6 @@
+<div class="archerTree" data-bind="'attr': { 'componentId': tree.componentId }">
+	<!-- ko foreach: { data: tree.store.getChildren(tree.store.getRoot()), as: 'eachItem'} -->
+		<!-- ko component: { name: 'archer-tree-item', params: { 'data': eachItem, 'tree': $parent.tree } } -->
+		<!-- /ko -->
+	<!-- /ko -->
+</div>

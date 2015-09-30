@@ -1,0 +1,12 @@
+@charset "utf-8";
+
+@import "../golbalSettings";
+
+html, body { margin:0px; height:100%; padding:0px;}
+
+.blank-body() when (@mode = @xcmode) {
+};
+.blank-body() when (@mode = @ssmode) {
+  body { background: url("../../images/test/pic-04.jpg") repeat top; }
+};
+.blank-body();
