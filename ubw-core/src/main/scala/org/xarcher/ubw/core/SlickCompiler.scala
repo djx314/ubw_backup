@@ -13,63 +13,12 @@ import scala.concurrent.ExecutionContext
 import scala.language.implicitConversions
 import org.xarcher.ubw.core.UbwPgDriver.api._
 
-case class UTable(tableName: String)
-case class UQuery(query: Query[Rep[JsValue], JsValue, Seq])
 case class UColumn(repName: String, columnGen: Rep[JsValue] => Rep[JsValue])
 
 trait SlickCompiler {
   /**
    * select "abc"."bbb", "bcd"."ccc", "abc"."ddd"."eee" from "abc", "bcd" where "abc"."bbb" = 2 and "abc"."bcd_id" = "bcd"."id"
    */
-  def genTq(tName: String) = {
-    object tableQuery extends TableQuery(cons => new UbwTable(cons, tName))
-    tName -> tableQuery
-  }
-
-  val tNameMap: Map[String, TableQuery[UbwTable]] = Map(
-    genTq("abc"),
-    genTq("bcd")
-  )
-
-  val tQueryMap: Map[String, Query[Rep[JsValue], JsValue, Seq]] =
-    tNameMap.map { case (key, tableQuery) => {
-      key -> tableQuery.map(_.data)
-    } }
-
-  val queryMap = List(
-    UColumn("abc", column => column +> "bbb"),
-    UColumn("bcd", column => column +> "bcd"),
-    UColumn("abc", column => column +> "ddd" +> "eee")
-  )
-
-  def miaolegemi(tQuery: List[(String, Query[Rep[JsValue], JsValue, Seq])], queryMap: (UColumn, UColumn, UColumn), repMap: Map[String, Rep[JsValue]])
-  : Query[(Rep[JsValue], Rep[JsValue], Rep[JsValue]), (JsValue, JsValue, JsValue), Seq] = {
-    tQuery match {
-      case content :: secondItem :: tail =>
-        content._2.flatMap(jsRep => {
-          val newMap = repMap + (content._1 -> jsRep)
-          miaolegemi(secondItem :: tail, queryMap, newMap)
-        })
-      case head :: Nil =>
-        head._2.map(jsRep => {
-          val newMap = repMap + (head._1 -> jsRep)
-          val (query1, query2, query3) = queryMap
-          val rep1 = query1.columnGen(newMap(query1.repName))
-          val rep2 = query2.columnGen(newMap(query2.repName))
-          val rep3 = query3.columnGen(newMap(query3.repName))
-          (rep1, rep2, rep3)
-        })
-      case _ => throw new Exception("喵了个咪,我就是看你不顺眼")
-    }
-  }
-
-  def run: Query[(Rep[JsValue], Rep[JsValue], Rep[JsValue]), (JsValue, JsValue, JsValue), Seq] = {
-    miaolegemi(tQueryMap.toList, (queryMap(0), queryMap(1), queryMap(2)), Map.empty[String, Rep[JsValue]])
-  }
-
-  def run1111(implicit ec: ExecutionContext): DBIO[Seq[Seq[JsValue]]] = {
-    xiaomai(tQueryMap.toList, queryMap)
-  }
 
   def xiaomai(tQuery: List[(String, Query[Rep[JsValue], JsValue, Seq])], queryList: List[UColumn])
   (implicit ec: ExecutionContext)
@@ -86,7 +35,6 @@ trait SlickCompiler {
         case head :: Nil =>
           head._2.map(jsRep => {
             val newMap = subRepMap + (head._1 -> jsRep)
-            println(columnMap.colMap(newMap))
             columnMap.colMap(newMap)
           })(columnMap.shape)
         case _ => throw new Exception("喵了个咪,我就是看你不顺眼")
@@ -94,13 +42,11 @@ trait SlickCompiler {
     }
 
     val query = mengmengda(tQuery, Map.empty[String, Rep[JsValue]])
-    println(1234.toString * 100)
-    println(query.asInstanceOf[Query[columnMap.ColType, columnMap.ValType, Seq]])
     query.result.map(s => s.map(t => columnMap.dataToList(t)))
   }
 
   def ouneisangma(queryList: List[UColumn]): ColumnMap = {
-    queryList.foldLeft(columnHead(queryList.head))((map, column) => {
+    queryList.tail.foldLeft(columnHead(queryList.head))((map, column) => {
       map.append(column)
     })
   }
