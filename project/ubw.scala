@@ -71,24 +71,28 @@ __        __            _
       "net.lingala.zip4j" % "zip4j" % "1.3.2",
 
       //security
-      //"be.objectify" %% "deadbolt-scala" % "2.4.1.1" exclude("com.google.code.findbugs", "jsr305"),
       "jp.t2v" %% "play2-auth" % "0.14.1",
       "jp.t2v" %% "play2-auth-social" % "0.14.1",
       "jp.t2v" %% "play2-auth-test" % "0.14.1" % "test",
-      play.sbt.Play.autoImport.cache,
+      play.sbt.Play.autoImport.cache
+
+    )
+  )
+  //commonSettings end
+  .dependsOn(`我要做个大新闻`)
+
+  lazy val `我要做个大新闻` = (project in file("./ubw-core"))
+  .settings(
+    libraryDependencies ++= Seq(
 
       //slick
-      /*"io.strongtyped" %% "active-slick" % "0.3.1",
       "com.github.tminglei" %% "slick-pg" % "0.10.0-RC1",
-      "com.typesafe.slick" %% "slick" % "3.1.0-RC1",
-      "com.typesafe.slick" %% "slick-hikaricp" % "3.1.0-RC1" exclude("com.zaxxer", "HikariCP-java6"),
-      "com.typesafe.play" %% "play-slick" % "1.1.0-M2",*/
-
-      /*"io.strongtyped" %% "active-slick" % "0.3.1",
-      "com.github.tminglei" %% "slick-pg" % "0.9.2",
-      "com.typesafe.slick" %% "slick" % "3.0.3",
-      "com.typesafe.play" %% "play-slick" % "1.0.1",*/
-
+      "com.typesafe.slick" %% "slick" % "3.1.0-RC2",
+      "com.typesafe.slick" %% "slick-hikaricp" % "3.1.0-RC2" exclude("com.zaxxer", "HikariCP-java6"),
+      "com.typesafe.play" %% "play-slick" % "1.1.0-RC2",
+      "com.chuusai" %% "shapeless" % "2.2.5",
+      "org.scalatest" %% "scalatest" % "2.2.4" % "test",
+      "com.h2database" % "h2" % "1.4.181" % "test",
       "org.apache.commons" % "commons-lang3" % "3.3.2",
       "org.joda" % "joda-convert" % "1.7",
       "com.vividsolutions" % "jts" % "1.13",
@@ -102,26 +106,6 @@ __        __            _
       "org.scalaz" %% "scalaz-iteratee" % "7.2.0-M3",
       "org.scalaz" %% "scalaz-concurrent" % "7.2.0-M3"
 
-    )
-  )
-  //commonSettings end
-  .dependsOn(`active-slick-modules-shapeless`)
-
-  lazy val `active-slick-modules-shapeless` = (project in file("./active-slick/modules/shapeless"))
-  .settings(CustomSettings.scalaSettings ++ CustomSettings.resolversSettings)
-  .dependsOn(`active-slick-modules-core`)
-
-  lazy val `active-slick-modules-core` = (project in file("./active-slick/modules/core"))
-  .settings(
-    libraryDependencies ++= Seq(
-      //slick
-      "com.github.tminglei" %% "slick-pg" % "0.10.0-RC1",
-      "com.typesafe.slick" %% "slick" % "3.1.0-RC2",
-      "com.typesafe.slick" %% "slick-hikaricp" % "3.1.0-RC2" exclude("com.zaxxer", "HikariCP-java6"),
-      "com.typesafe.play" %% "play-slick" % "1.1.0-RC2",
-      "com.chuusai" %% "shapeless" % "2.2.5",
-      "org.scalatest" %% "scalatest" % "2.2.4" % "test",
-      "com.h2database" % "h2" % "1.4.181" % "test"
     )
   )
   .settings(CustomSettings.scalaSettings ++ CustomSettings.resolversSettings)
