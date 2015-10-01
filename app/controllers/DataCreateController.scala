@@ -33,7 +33,7 @@ class DataCreateController extends Controller with DBBase {
     val tableName = request.body
     object tableQuery extends TableQuery(cons => new UbwTable(cons, tableName))
     val insertFuture = db.run(tableQuery += Ubw(data = Json.obj("小aa缘bb喵cc" -> ("我dd是ee小ff缘gg喵" + new DateTime().toString), "日期" -> new DateTime().toString)))
-    val valuesFuture = db.run(tableQuery.map(s => s.data +> "小aa缘bb喵cc").result)
+    val valuesFuture = db.run(tableQuery.filter(s => s.data +> "日期" =!= Json.toJson("2333")).map(s => s.data +> "小aa缘bb喵cc").result)
     valuesFuture.flatMap { values =>
       db.run(tableQuery.result).flatMap { ubws =>
         Future successful Ok(views.html.dataCreateSuccess(tableName)(ubws)(true)(values))
