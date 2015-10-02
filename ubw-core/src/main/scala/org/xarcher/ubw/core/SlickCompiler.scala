@@ -14,7 +14,7 @@ import scala.language.implicitConversions
 import org.xarcher.ubw.core.UbwPgDriver.api._
 
 case class UItem(key: String, value: Option[JsValue])
-case class UColumn(name: String, describe: String, query: String)
+case class UColumn(alias: String/*列的别名*/, describe: String/*列的描述,相当于 select 的列的内容*/, query: String)
 
 trait UContent {
 
@@ -40,7 +40,8 @@ trait UColumnMap {
 
   type ColType <: Product
   type ValType <: Product
-  val colMap: Map[String, PartialFunction[String, Rep[Option[JsValue]]]] => ColType
+  val colMap: Map[String, PartialFunction[String, Rep[Option[JsValue]]]] => ColType //由于要通过表名映射到列操作,所以要多一个 map
+  val colReverseMap: ColType => PartialFunction[String, Rep[Option[JsValue]]] //UQuery.toContent 的时候只有一个 content,所以并不需要映射,这里不需要 map
   val dataToList: ValType => List[UItem]
   val shape:  Shape[_ <: FlatShapeLevel, ColType, ValType, ColType]
 
@@ -53,14 +54,22 @@ trait UColumnMap {
       val genRep = repMap(column.query)(column.describe)
       oldColMap -> genRep
     }
+    val columnReverseMap: ColumnType => PartialFunction[String, Rep[Option[JsValue]]] = columns => {
+      val oldReverseMap = colReverseMap(columns._1); //分号不可删
+      {
+        case `column`.`alias` => columns._2
+        case s: String => oldReverseMap(s)
+      }
+    }
     val valueDataToList: ValueType => List[UItem] = value => {
       val content = dataToList(value._1)
-      content ::: UItem(column.name, value._2) :: Nil
+      content ::: UItem(column.alias, value._2) :: Nil
     }
     new UColumnMap {
       type ColType = ColumnType
       type ValType = ValueType
       val colMap = columnMap
+      val colReverseMap = columnReverseMap
       val dataToList = valueDataToList
       val shape = tuple2Shape
     }
@@ -74,7 +83,15 @@ trait UQuery {
   lazy val columnMap: UColumnMap = UQuery.ouneisangma(columns)
 
   def kimoji: Query[columnMap.ColType, columnMap.ValType, Seq] = {
-    UQuery.mengmengda(contents.toList, columnMap, Map.empty[String, PartialFunction[String, Rep[Option[JsValue]]]])
+    UQuery.mengmengda(contents.toList, columnMap)
+  }
+
+  def toContent = new UContent {
+    override type ColumnType = columnMap.ColType
+    override val query = kimoji
+    override def columnGen(rep: ColumnType) = {
+      columnMap.colReverseMap(rep)
+    }
   }
 
   def result(implicit ec: ExecutionContext): DBIO[Seq[Seq[UItem]]] = {
@@ -100,17 +117,23 @@ object UQuery {
       val genRep = repMap(column.query)(column.describe)
       Tuple1(genRep)
     }
-    val valueDataToList: ValueType => List[UItem] = value => List(UItem(column.name, value._1))
+    val columnReverseMap: ColumnType => PartialFunction[String, Rep[Option[JsValue]]] = columns => {
+      {
+        case `column`.`alias` => columns._1
+      }
+    }
+    val valueDataToList: ValueType => List[UItem] = value => List(UItem(column.alias, value._1))
     new UColumnMap {
       type ColType = ColumnType
       type ValType = ValueType
       val colMap = columnMap
+      val colReverseMap = columnReverseMap
       val dataToList = valueDataToList
       val shape = tuple1Shape
     }
   }
 
-  def mengmengda(subTQuery: List[(String, UContent)], columnMap: UColumnMap, subRepMap: Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): Query[columnMap.ColType, columnMap.ValType, Seq] = {
+  def mengmengda(subTQuery: List[(String, UContent)], columnMap: UColumnMap, subRepMap: Map[String, PartialFunction[String, Rep[Option[JsValue]]]] = Map()): Query[columnMap.ColType, columnMap.ValType, Seq] = {
     subTQuery match {
       case content :: secondItem :: tail =>
         content._2.query.flatMap(jsRep => {

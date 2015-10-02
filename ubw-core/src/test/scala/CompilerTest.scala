@@ -6,15 +6,17 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import scala.annotation.tailrec
 import scalaz._, Scalaz._
-import scala.language.higherKinds
 import scala.concurrent.ExecutionContext
-import scala.language.implicitConversions
 import org.xarcher.ubw.core.UbwPgDriver.api._
 import org.scalatest._
 import org.scalatest.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+
+import scala.language.higherKinds
+import scala.language.implicitConversions
+import scala.language.existentials
 
 class CompilerTest extends FlatSpec
 with ScalaFutures
@@ -51,6 +53,21 @@ with OneInstancePerTest {
     }.result
   }
 
+  def runWithSub(implicit ec: ExecutionContext): DBIO[Seq[Seq[UItem]]] = {
+    val subContent = new UQuery {
+      override val contents = tQueryMap.toMap
+      override val columns = queryMap
+    }.toContent
+    val parentQueryMap = List(
+      UColumn("划船不用浆", "喵了个jb", "啊哈哈哈哈"),
+      UColumn("全靠浪","喵了个大jb", "啊哈哈哈哈")
+    )
+    new UQuery {
+      override val contents = Map("啊哈哈哈哈" -> subContent)
+      override val columns = parentQueryMap
+    }.result
+  }
+
   val abcTable = new TableQuery(cons => new UbwTable(cons, "abc"))
   val bcdTable = new TableQuery(cons => new UbwTable(cons, "bcd"))
   val tableQuerys = tQueryMap.map(_._2.query)
@@ -75,6 +92,10 @@ with OneInstancePerTest {
 
   "cccc" should "ddddd" in {
     Await.result(db.run(run).map(s => println(s.mkString("\n"))), Duration.Inf)
+  }
+
+  "eeee" should "ffff" in {
+    Await.result(db.run(runWithSub).map(s => println(s.mkString("\n"))), Duration.Inf)
   }
 
 }
