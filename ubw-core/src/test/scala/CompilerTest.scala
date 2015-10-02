@@ -41,22 +41,22 @@ with OneInstancePerTest {
   )
 
   //kay 和 query 的对应信息
-  val tQueryMap: List[(String, Query[Rep[JsValue], JsValue, Seq])] =
+  val tQueryMap: List[(String, Query[Rep[Option[JsValue]], Option[JsValue], Seq])] =
     tNameMap.map { case (key, tableQuery) => {
-      key -> tableQuery.map(_.data)
+      key -> tableQuery.map(_.data.?)
     } }.toList
 
   //query 的 key 和列操作的映射关系信息
   val queryMap = List(
-    UColumn("abc", column => column +> "bbb"),
-    UColumn("bcd", column => column +> "bcd"),
-    UColumn("abc", column => column +> "ddd" +> "eeee")
+    UColumn("喵了个咪", "abc", column => column +> "bbb"),
+    UColumn("喵了个jb", "bcd", column => column +> "bcd"),
+    UColumn("喵了个大jb","abc", column => column +> "ddd" +> "eeee")
   )
 
   val slickCompiler = new SlickCompiler {}
 
   //翻译 list 信息到 query
-  def run(implicit ec: ExecutionContext): DBIO[Seq[Seq[JsValue]]] = {
+  def run(implicit ec: ExecutionContext): DBIO[Seq[Seq[UItem]]] = {
     slickCompiler.xiaomai(tQueryMap, queryMap)
   }
 
@@ -67,7 +67,7 @@ with OneInstancePerTest {
 
   before {
     val json1 = Json.parse("""{ "aaa": "我是萌萌哒的aaaaa", "bbb": 2333, "ddd": { "eeee": "我是深层的eeee", "fff": "gherhrjyukuiiu" } }""")
-    val json2 = Json.parse("""{ "aaa": "我是萌萌哒的第二个aaaaa", "bbb": "我是萌萌哒的第二个bbbb", "ddd": { "eeee": "我是第二个深层的eeee", "fff": "gherhrjyukuiiu" } }""")
+    val json2 = Json.parse("""{ "aaa": "我是萌萌哒的第二个aaaaa", "bbb": "我是萌萌哒的第二个bbbb" }""")
     val bcdJson = Json.parse("""{ "bcd": "我是第二个表的数据", "bbb": "aaaa", "ddd": { "eee": "sdfsgferhrthj", "fff": "gherhrjyukuiiu" } }""")
     val bcd2Json = Json.parse("""{ "bcd": 1234, "bbb": "aaaa", "ddd": { "eee": "sdfsgferhrthj", "fff": "gherhrjyukuiiu" } }""")
     val action = schemas.create >> {
@@ -83,7 +83,7 @@ with OneInstancePerTest {
   }
 
   "cccc" should "ddddd" in {
-    Await.result(db.run(run).map(s => println(s)), Duration.Inf)
+    Await.result(db.run(run).map(s => println(s.mkString("\n"))), Duration.Inf)
   }
 
 }
