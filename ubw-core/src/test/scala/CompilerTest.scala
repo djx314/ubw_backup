@@ -29,41 +29,32 @@ with OneInstancePerTest {
     password = "postgres"
   )
 
-  def genTq(tName: String) = {
-    object tableQuery extends TableQuery(cons => new UbwTable(cons, tName))
-    tName -> tableQuery
-  }
-
-  //key 和 tableQuery 之间的 map
-  val tNameMap: Map[String, TableQuery[UbwTable]] = Map(
-    genTq("abc"),
-    genTq("bcd")
-  )
-
   //kay 和 query 的对应信息
-  val tQueryMap: List[(String, Query[Rep[Option[JsValue]], Option[JsValue], Seq])] =
-    tNameMap.map { case (key, tableQuery) => {
-      key -> tableQuery.map(_.data.?)
-    } }.toList
+  val tQueryMap: List[(String, UContent)] =
+    List(
+      "aaaa1" -> new UTableQueryContent("abc"),
+      "aaaa2" -> new UTableQueryContent("bcd")
+    )
 
   //query 的 key 和列操作的映射关系信息
   val queryMap = List(
-    UColumn("喵了个咪", "abc", column => column +> "bbb"),
-    UColumn("喵了个jb", "bcd", column => column +> "bcd"),
-    UColumn("喵了个大jb","abc", column => column +> "ddd" +> "eeee")
+    UColumn("喵了个咪", "bbb", "aaaa1"),
+    UColumn("喵了个jb", "bcd", "aaaa2"),
+    UColumn("喵了个大jb","ddd", "aaaa1")
   )
-
-  val slickCompiler = new SlickCompiler {}
 
   //翻译 list 信息到 query
   def run(implicit ec: ExecutionContext): DBIO[Seq[Seq[UItem]]] = {
-    slickCompiler.xiaomai(tQueryMap, queryMap)
+    new UQuery {
+      override val contents = tQueryMap.toMap
+      override val columns = queryMap
+    }.result
   }
 
-  val tableQuerys = tNameMap.toList.map(_._2)
-  val schemas = tableQuerys.tail.foldLeft(tableQuerys.head.schema)((s, t) => {
-    s ++ t.schema
-  })
+  val abcTable = new TableQuery(cons => new UbwTable(cons, "abc"))
+  val bcdTable = new TableQuery(cons => new UbwTable(cons, "bcd"))
+  val tableQuerys = tQueryMap.map(_._2.query)
+  val schemas = abcTable.schema ++ bcdTable.schema
 
   before {
     val json1 = Json.parse("""{ "aaa": "我是萌萌哒的aaaaa", "bbb": 2333, "ddd": { "eeee": "我是深层的eeee", "fff": "gherhrjyukuiiu" } }""")
@@ -71,9 +62,9 @@ with OneInstancePerTest {
     val bcdJson = Json.parse("""{ "bcd": "我是第二个表的数据", "bbb": "aaaa", "ddd": { "eee": "sdfsgferhrthj", "fff": "gherhrjyukuiiu" } }""")
     val bcd2Json = Json.parse("""{ "bcd": 1234, "bbb": "aaaa", "ddd": { "eee": "sdfsgferhrthj", "fff": "gherhrjyukuiiu" } }""")
     val action = schemas.create >> {
-      tNameMap("abc") ++= List(json1, json2).map(s => Ubw(data = s))
+      new TableQuery(cons => new UbwTable(cons, "abc")) ++= List(json1, json2).map(s => Ubw(data = s))
     } >> {
-      tNameMap("bcd") ++= List(bcdJson, bcd2Json).map(s => Ubw(data = s))
+      new TableQuery(cons => new UbwTable(cons, "bcd")) ++= List(bcdJson, bcd2Json).map(s => Ubw(data = s))
     }
     Await.result(db.run(action), Duration.Inf)
   }
