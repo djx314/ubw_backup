@@ -48,23 +48,26 @@ with OneInstancePerTest {
   //翻译 list 信息到 query
   def run(implicit ec: ExecutionContext): DBIO[Seq[Seq[UItem]]] = {
     new UQuery {
-      override val contents = tQueryMap.toMap
+      override val contents = tQueryMap
       override val columns = queryMap
+      override val oneFilter = new ColumnGt(UColumn("xxxx", "bcd", "aaaa2"), 234)
     }.result
   }
 
   def runWithSub(implicit ec: ExecutionContext): DBIO[Seq[Seq[UItem]]] = {
     val subContent = new UQuery {
-      override val contents = tQueryMap.toMap
+      override val contents = tQueryMap
       override val columns = queryMap
+      override val oneFilter = new ColumnGt(UColumn("xxxx", "bcd", "aaaa2"), 234)
     }.toContent
     val parentQueryMap = List(
       UColumn("划船不用浆", "喵了个jb", "啊哈哈哈哈"),
       UColumn("全靠浪","喵了个大jb", "啊哈哈哈哈")
     )
     new UQuery {
-      override val contents = Map("啊哈哈哈哈" -> subContent)
+      override val contents = List("啊哈哈哈哈" -> subContent)
       override val columns = parentQueryMap
+      override val oneFilter = new ColumnGt(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), 567)
     }.result
   }
 

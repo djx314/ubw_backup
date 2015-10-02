@@ -1,10 +1,6 @@
 package org.xarcher.ubw.core
 
-import java.sql.Timestamp
-
-import org.joda.time.DateTime
 import play.api.libs.json._
-import slick.collection.heterogeneous.HList
 import slick.lifted.TupleShape
 import scala.annotation.tailrec
 import scalaz._, Scalaz._
@@ -32,6 +28,20 @@ class UTableQueryContent(val tableName: String) extends UContent {
 
   override def columnGen(rep: ColumnType) = {
     case name: String => (rep.data +> name).?
+  }
+
+}
+
+trait UFilter {
+
+  def filter: Map[String, PartialFunction[String, Rep[Option[JsValue]]]] => Rep[Option[Boolean]]
+
+}
+
+class ColumnGt(column: UColumn, num: Long) extends UFilter {
+
+  def filter = map => {
+    map(column.query)(column.describe) > Json.toJson(num)
   }
 
 }
@@ -78,13 +88,15 @@ trait UColumnMap {
 
 trait UQuery {
 
-  val contents: Map[String, UContent]
+  val contents: List[(String, UContent)]
   val columns: List[UColumn]
   lazy val columnMap: UColumnMap = UQuery.ouneisangma(columns)
 
   def kimoji: Query[columnMap.ColType, columnMap.ValType, Seq] = {
-    UQuery.mengmengda(contents.toList, columnMap)
+    UQuery.mengmengda(contents, columnMap, oneFilter)
   }
+
+  def oneFilter: UFilter
 
   def toContent = new UContent {
     override type ColumnType = columnMap.ColType
@@ -133,18 +145,23 @@ object UQuery {
     }
   }
 
-  def mengmengda(subTQuery: List[(String, UContent)], columnMap: UColumnMap, subRepMap: Map[String, PartialFunction[String, Rep[Option[JsValue]]]] = Map()): Query[columnMap.ColType, columnMap.ValType, Seq] = {
+  def mengmengda(subTQuery: List[(String, UContent)], columnMap: UColumnMap, filter: UFilter, subRepMap: Map[String, PartialFunction[String, Rep[Option[JsValue]]]] = Map()): Query[columnMap.ColType, columnMap.ValType, Seq] = {
     subTQuery match {
       case content :: secondItem :: tail =>
         content._2.query.flatMap(jsRep => {
           val newMap = subRepMap + (content._1 -> content._2.columnGen(jsRep))
-          mengmengda(secondItem :: tail, columnMap, newMap)
+          mengmengda(secondItem :: tail, columnMap, filter, newMap)
         })
       case head :: Nil =>
-        head._2.query.map(jsRep => {
-          val newMap = subRepMap + (head._1 -> head._2.columnGen(jsRep))
-          columnMap.colMap(newMap)
-        })(columnMap.shape)
+        head._2.query
+          .filter(jsRep => {
+            val newMap = subRepMap + (head._1 -> head._2.columnGen(jsRep))
+            filter.filter(newMap)
+          })
+          .map(jsRep => {
+            val newMap = subRepMap + (head._1 -> head._2.columnGen(jsRep))
+            columnMap.colMap(newMap)
+          })(columnMap.shape)
       case _ => throw new Exception("喵了个咪,我就是看你不顺眼")
     }
   }
