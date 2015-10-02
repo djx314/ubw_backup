@@ -16,6 +16,12 @@ import org.xarcher.ubw.core.UbwPgDriver.api._
 case class UColumn(columnKey: String, repName: String, columnGen: Rep[Option[JsValue]] => Rep[Option[JsValue]])
 case class UItem(key: String, value: Option[JsValue])
 
+/*trait UContent {
+
+  def tra
+
+}*/
+
 trait SlickCompiler {
   /**
    * select "abc"."bbb", "bcd"."ccc", "abc"."ddd"."eee" from "abc", "bcd" where "abc"."bbb" = 2 and "abc"."bcd_id" = "bcd"."id"
@@ -24,6 +30,7 @@ trait SlickCompiler {
   def xiaomai(tQuery: List[(String, Query[Rep[Option[JsValue]], Option[JsValue], Seq])], queryList: List[UColumn])
   (implicit ec: ExecutionContext)
   : DBIO[Seq[Seq[UItem]]] = {
+
     val columnMap = ouneisangma(queryList)
 
     def mengmengda(subTQuery: List[(String, Query[Rep[Option[JsValue]], Option[JsValue], Seq])], subRepMap: Map[String, Rep[Option[JsValue]]]): Query[columnMap.ColType, columnMap.ValType, Seq] = {
@@ -42,8 +49,26 @@ trait SlickCompiler {
       }
     }
 
-    val query = mengmengda(tQuery, Map.empty[String, Rep[Option[JsValue]]])
-    query.result.map(s => s.map(t => columnMap.dataToList(t)))
+    val query = mengmengdamiao(columnMap, tQuery, Map.empty[String, Rep[Option[JsValue]]])
+    val query1 = mengmengda(tQuery, Map.empty[String, Rep[Option[JsValue]]])
+    query1.result.map(s => s.map(t => columnMap.dataToList(t)))
+  }
+
+  def mengmengdamiao(columnMap: ColumnMap, subTQuery: List[(String, Query[Rep[Option[JsValue]], Option[JsValue], Seq])], subRepMap: Map[String, Rep[Option[JsValue]]])
+    : Query[columnMap.ColType, columnMap.ValType, Seq] = {
+    subTQuery match {
+      case content :: secondItem :: tail =>
+        content._2.flatMap(jsRep => {
+          val newMap = subRepMap + (content._1 -> jsRep)
+          mengmengdamiao(columnMap, secondItem :: tail, newMap)
+        })
+      case head :: Nil =>
+        head._2.map(jsRep => {
+          val newMap = subRepMap + (head._1 -> jsRep)
+          columnMap.colMap(newMap)
+        })(columnMap.shape)
+      case _ => throw new Exception("喵了个咪,我就是看你不顺眼")
+    }
   }
 
   def ouneisangma(queryList: List[UColumn]): ColumnMap = {
