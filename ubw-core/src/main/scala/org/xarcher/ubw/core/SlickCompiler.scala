@@ -1,7 +1,7 @@
 package org.xarcher.ubw.core
 
 import play.api.libs.json._
-import slick.lifted.TupleShape
+import slick.lifted.{CanBeQueryCondition, ColumnOrdered, TupleShape}
 import scala.annotation.tailrec
 import scalaz._, Scalaz._
 import scala.language.higherKinds
@@ -32,17 +32,64 @@ class UTableQueryContent(val tableName: String) extends UContent {
 
 }
 
-trait UFilter {
+class ColumnGt(column: UColumn, num: Long) extends UFilter {
 
-  def filter: Map[String, PartialFunction[String, Rep[Option[JsValue]]]] => Rep[Option[Boolean]]
+  override type ColumnType = Option[Boolean]
+
+  override val implicitCondition = implicitly[CanBeQueryCondition[ResultRep]]
+
+  override def repConvert(map: Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): ResultRep = {
+    map(column.query)(column.describe) > Json.toJson(num)
+  }
 
 }
 
-class ColumnGt(column: UColumn, num: Long) extends UFilter {
+trait UFilter extends BaseQueryMap {
 
-  def filter = map => {
-    map(column.query)(column.describe) > Json.toJson(num)
+  type ColumnType
+
+  val implicitCondition: CanBeQueryCondition[ResultRep]
+
+  override type ResultRep = Rep[ColumnType]
+
+  override def transform[E, U, C[_]]
+  (query: Query[E, U, C])
+  (mapConvert: E => Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): Query[E, U, C] = {
+    query.filter(s => repConvert(mapConvert(s)))(implicitCondition)
   }
+
+}
+
+class SortBy(column: UColumn, isDesc: Option[Boolean]) extends BaseQueryMap {
+
+  override type ResultRep = ColumnOrdered[_]
+  override def transform[E, U, C[_]]
+  (query: Query[E, U, C])
+  (mapConvert: E => Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): Query[E, U, C] = {
+    query.sortBy(s => repConvert(mapConvert(s)))
+  }
+
+  def repConvert(map: Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): ResultRep = {
+    if (isDesc.isDefined) {
+      if (isDesc.get)
+        map(column.query)(column.describe).desc.nullsLast
+      else
+        map(column.query)(column.describe).asc.nullsLast
+    } else
+      map(column.query)(column.describe)
+
+  }
+
+}
+
+trait BaseQueryMap {
+
+  type ResultRep
+
+  def transform[E, U, C[_]](query: Query[E, U, C])
+    (mapConvert: E => Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): Query[E, U, C]
+
+  def repConvert(map: Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): ResultRep
 
 }
 
@@ -93,10 +140,10 @@ trait UQuery {
   lazy val columnMap: UColumnMap = UQuery.ouneisangma(columns)
 
   def kimoji: Query[columnMap.ColType, columnMap.ValType, Seq] = {
-    UQuery.mengmengda(contents, columnMap, oneFilter)
+    UQuery.mengmengda(contents, columnMap, converts)
   }
 
-  def oneFilter: UFilter
+  def converts: Seq[BaseQueryMap]
 
   def toContent = new UContent {
     override type ColumnType = columnMap.ColType
@@ -145,23 +192,23 @@ object UQuery {
     }
   }
 
-  def mengmengda(subTQuery: List[(String, UContent)], columnMap: UColumnMap, filter: UFilter, subRepMap: Map[String, PartialFunction[String, Rep[Option[JsValue]]]] = Map()): Query[columnMap.ColType, columnMap.ValType, Seq] = {
+  def mengmengda(subTQuery: List[(String, UContent)], columnMap: UColumnMap, converts: Seq[BaseQueryMap], subRepMap: Map[String, PartialFunction[String, Rep[Option[JsValue]]]] = Map()): Query[columnMap.ColType, columnMap.ValType, Seq] = {
     subTQuery match {
       case content :: secondItem :: tail =>
         content._2.query.flatMap(jsRep => {
           val newMap = subRepMap + (content._1 -> content._2.columnGen(jsRep))
-          mengmengda(secondItem :: tail, columnMap, filter, newMap)
+          mengmengda(secondItem :: tail, columnMap, converts, newMap)
         })
       case head :: Nil =>
-        head._2.query
-          .filter(jsRep => {
-            val newMap = subRepMap + (head._1 -> head._2.columnGen(jsRep))
-            filter.filter(newMap)
-          })
-          .map(jsRep => {
-            val newMap = subRepMap + (head._1 -> head._2.columnGen(jsRep))
-            columnMap.colMap(newMap)
-          })(columnMap.shape)
+        converts
+        .foldLeft(head._2.query)((query, convert) => {
+          convert
+            .transform(query)(jsRep => subRepMap + (head._1 -> head._2.columnGen(jsRep)))
+        })
+        .map(jsRep => {
+          val newMap = subRepMap + (head._1 -> head._2.columnGen(jsRep))
+          columnMap.colMap(newMap)
+        })(columnMap.shape)
       case _ => throw new Exception("喵了个咪,我就是看你不顺眼")
     }
   }

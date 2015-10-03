@@ -50,7 +50,7 @@ with OneInstancePerTest {
     new UQuery {
       override val contents = tQueryMap
       override val columns = queryMap
-      override val oneFilter = new ColumnGt(UColumn("xxxx", "bcd", "aaaa2"), 234)
+      override val converts = List(new ColumnGt(UColumn("xxxx", "bcd", "aaaa2"), 234))
     }.result
   }
 
@@ -58,7 +58,10 @@ with OneInstancePerTest {
     val subContent = new UQuery {
       override val contents = tQueryMap
       override val columns = queryMap
-      override val oneFilter = new ColumnGt(UColumn("xxxx", "bcd", "aaaa2"), 234)
+      override val converts = List(
+        new ColumnGt(UColumn("xxxx", "bcd", "aaaa2"), 234),
+        new SortBy(UColumn("xxxx", "bcd", "aaaa2"), Option(true))
+      )
     }.toContent
     val parentQueryMap = List(
       UColumn("划船不用浆", "喵了个jb", "啊哈哈哈哈"),
@@ -67,7 +70,11 @@ with OneInstancePerTest {
     new UQuery {
       override val contents = List("啊哈哈哈哈" -> subContent)
       override val columns = parentQueryMap
-      override val oneFilter = new ColumnGt(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), 567)
+      override val converts = List(
+        new ColumnGt(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), 567),
+        new SortBy(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), None),
+        new SortBy(UColumn("xxxx", "喵了个大jb", "啊哈哈哈哈"), Option(true))
+      )
     }.result
   }
 
