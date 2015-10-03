@@ -5,7 +5,7 @@ import Keys._
 
 object CustomSettings {
   
-  def customSettings = scalaSettings ++ resolversSettings ++ extAlias ++ playSettings ++ graphSettings ++ assemblyPluginSettings ++ nativePackageSettings
+  def customSettings = scalaSettings ++ resolversSettings ++ extAlias ++ playSettings ++ graphSettings ++ assemblyPluginSettings ++ nativePackageSettings ++ ammoniteConsoleInit
   
   def scalaSettings =
     Seq(
@@ -28,6 +28,7 @@ object CustomSettings {
   def extAliasInfo = List(
     Option("xeclipse" -> "eclipse with-source=true skip-parents=false"),
     Option("s" -> "我要做个大新闻/test"),
+    Option("c" -> "我要做个大新闻/test:console"),
     if (OSName.isWindows)
       Option(windowsGitInitCommandMap)
     else if (OSName.isLinux)
@@ -111,5 +112,13 @@ object CustomSettings {
     )
 
   }
+
+  val ammoniteConsoleInit =
+    if (org.xarcher.sbt.OSName.isWindows)
+      Seq(initialCommands in console += """ammonite.repl.Repl.run("repl.frontEnd() = ammonite.repl.frontend.FrontEnd.JLineWindows");""")
+    else if (org.xarcher.sbt.OSName.isLinux)
+      Seq(initialCommands in console += """ammonite.repl.Repl.run("");""")
+    else
+      Seq()
 
 }

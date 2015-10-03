@@ -1,4 +1,4 @@
-package org.xarcher.ubw.core
+package org.xarcher.ubw.core.slick
 
 import java.sql.Timestamp
 
