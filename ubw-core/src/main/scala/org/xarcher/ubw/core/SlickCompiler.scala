@@ -167,13 +167,13 @@ trait UQuery {
 
   val contents: List[(String, UContent)]
   val columns: List[UColumn]
+  def converts: Seq[BaseQueryMap]
+
   lazy val columnMap: UColumnMap = UQuery.ouneisangma(columns)
 
   def kimoji: Query[columnMap.ColType, columnMap.ValType, Seq] = {
     UQuery.mengmengda(contents, columnMap, converts)
   }
-
-  def converts: Seq[BaseQueryMap]
 
   def toContent = new UContent {
     override type ColumnType = columnMap.ColType
@@ -222,7 +222,8 @@ object UQuery {
     }
   }
 
-  def mengmengda(subTQuery: List[(String, UContent)], columnMap: UColumnMap, converts: Seq[BaseQueryMap], subRepMap: Map[String, PartialFunction[String, Rep[Option[JsValue]]]] = Map()): Query[columnMap.ColType, columnMap.ValType, Seq] = {
+  def mengmengda(subTQuery: List[(String, UContent)], columnMap: UColumnMap, converts: Seq[BaseQueryMap], subRepMap: Map[String, PartialFunction[String, Rep[Option[JsValue]]]] = Map())
+  : Query[columnMap.ColType, columnMap.ValType, Seq] = {
     subTQuery match {
       case content :: secondItem :: tail =>
         content._2.query.flatMap(jsRep => {
