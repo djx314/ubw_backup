@@ -93,6 +93,7 @@ with OneInstancePerTest {
           new ColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 567) and
           new ColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 678) or
           new ColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 789) and
+          new ColumnLike(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), "6789%") and
           new ColumnLike(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), "%我是萌萌哒的第二个%")
         },
         new SortBy(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), None),
