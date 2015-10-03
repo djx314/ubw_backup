@@ -48,16 +48,30 @@ with OneInstancePerTest {
   //翻译 list 信息到 query
   def run(implicit ec: ExecutionContext): DBIO[Seq[Seq[UItem]]] = {
     new UQuery {
-      override val contents = tQueryMap
-      override val columns = queryMap
+      override val contents = List(
+        "aaaa1" -> new UTableQueryContent("abc"),
+        "aaaa2" -> new UTableQueryContent("bcd")
+      )
+      override val columns = List(
+        UColumn("喵了个咪", "bbb", "aaaa1"),
+        UColumn("喵了个jb", "bcd", "aaaa2"),
+        UColumn("喵了个大jb","ddd", "aaaa1")
+      )
       override val converts = List(new ColumnGt(UColumn("xxxx", "bcd", "aaaa2"), 234))
     }.result
   }
 
   def runWithSub(implicit ec: ExecutionContext): DBIO[Seq[Seq[UItem]]] = {
     val subContent = new UQuery {
-      override val contents = tQueryMap
-      override val columns = queryMap
+      override val contents = List(
+        "aaaa1" -> new UTableQueryContent("abc"),
+        "aaaa2" -> new UTableQueryContent("bcd")
+      )
+      override val columns = List(
+        UColumn("喵了个咪", "bbb", "aaaa1"),
+        UColumn("喵了个jb", "bcd", "aaaa2"),
+        UColumn("喵了个大jb","ddd", "aaaa1")
+      )
       override val converts = List(
         new ColumnGt(UColumn("xxxx", "bcd", "aaaa2"), 234),
         new SortBy(UColumn("xxxx", "bcd", "aaaa2"), Option(true))
@@ -71,7 +85,11 @@ with OneInstancePerTest {
       override val contents = List("啊哈哈哈哈" -> subContent)
       override val columns = parentQueryMap
       override val converts = List(
-        new ColumnGt(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), 567),
+        {
+          new ColumnGt(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), 567) and
+          new ColumnGt(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), 678) or
+          new ColumnGt(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), 789)
+        },
         new SortBy(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), None),
         new SortBy(UColumn("xxxx", "喵了个大jb", "啊哈哈哈哈"), Option(true))
       )
