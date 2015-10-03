@@ -32,14 +32,36 @@ class UTableQueryContent(val tableName: String) extends UContent {
 
 }
 
-class ColumnGt(column: UColumn, num: Long) extends UFilter {
+class ColumnGt(column: UColumn, num: Long) extends BooleanOptFilter {
+
+  override def repConvert(map: Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): ResultRep = {
+    map(column.query)(column.describe) > Json.toJson(num)
+  }
+
+}
+
+trait BooleanOptFilter extends UFilter {
 
   override type ColumnType = Option[Boolean]
 
   override val implicitCondition = implicitly[CanBeQueryCondition[ResultRep]]
 
-  override def repConvert(map: Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): ResultRep = {
-    map(column.query)(column.describe) > Json.toJson(num)
+  def and(other: BooleanOptFilter) = {
+    val selfFilter = this
+    new BooleanOptFilter {
+      override def repConvert(map: Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): ResultRep = {
+        selfFilter.repConvert(map) && other.repConvert(map)
+      }
+    }
+  }
+
+  def or(other: BooleanOptFilter) = {
+    val selfFilter = this
+    new BooleanOptFilter {
+      override def repConvert(map: Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): ResultRep = {
+        selfFilter.repConvert(map) || other.repConvert(map)
+      }
+    }
   }
 
 }
