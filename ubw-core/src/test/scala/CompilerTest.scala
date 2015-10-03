@@ -53,6 +53,7 @@ with OneInstancePerTest {
         "aaaa2" -> new UTableQueryContent("bcd")
       )
       override val columns = List(
+        UColumn("黑狗", "aaa", "aaaa1"),
         UColumn("喵了个咪", "bbb", "aaaa1"),
         UColumn("喵了个jb", "bcd", "aaaa2"),
         UColumn("喵了个大jb","ddd", "aaaa1")
@@ -68,27 +69,31 @@ with OneInstancePerTest {
         "aaaa2" -> new UTableQueryContent("bcd")
       )
       override val columns = List(
+        UColumn("黑狗", "aaa", "aaaa1"),
         UColumn("喵了个咪", "bbb", "aaaa1"),
         UColumn("喵了个jb", "bcd", "aaaa2"),
         UColumn("喵了个大jb","ddd", "aaaa1")
       )
       override val converts = List(
-        new ColumnGt(UColumn("xxxx", "bcd", "aaaa2"), 234),
-        new SortBy(UColumn("xxxx", "bcd", "aaaa2"), Option(true))
+        /*new ColumnGt(UColumn("xxxx", "bcd", "aaaa2"), 234),
+        new SortBy(UColumn("xxxx", "bcd", "aaaa2"), Option(true))*/
       )
     }.toContent
     val parentQueryMap = List(
-      UColumn("划船不用浆", "喵了个jb", "啊哈哈哈哈"),
-      UColumn("全靠浪","喵了个大jb", "啊哈哈哈哈")
+      UColumn("白猫", "黑狗", "啊哈哈哈哈"),
+      UColumn("划船不用浆", "喵了个咪", "啊哈哈哈哈"),
+      UColumn("全靠浪","喵了个jb", "啊哈哈哈哈"),
+      UColumn("夏目友人帐","喵了个大jb", "啊哈哈哈哈")
     )
     new UQuery {
       override val contents = List("啊哈哈哈哈" -> subContent)
       override val columns = parentQueryMap
       override val converts = List(
         {
-          new ColumnGt(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), 567) and
-          new ColumnGt(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), 678) or
-          new ColumnGt(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), 789)
+          new ColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 567) and
+          new ColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 678) or
+          new ColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 789) and
+          new ColumnLike(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), "%我是萌萌哒的第二个%")
         },
         new SortBy(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), None),
         new SortBy(UColumn("xxxx", "喵了个大jb", "啊哈哈哈哈"), Option(true))
@@ -102,8 +107,8 @@ with OneInstancePerTest {
   val schemas = abcTable.schema ++ bcdTable.schema
 
   before {
-    val json1 = Json.parse("""{ "aaa": "我是萌萌哒的aaaaa", "bbb": 2333, "ddd": { "eeee": "我是深层的eeee", "fff": "gherhrjyukuiiu" } }""")
-    val json2 = Json.parse("""{ "aaa": "我是萌萌哒的第二个aaaaa", "bbb": "我是萌萌哒的第二个bbbb" }""")
+    val json1 = Json.parse("""{ "aaa": 123456, "bbb": "我是萌萌哒", "ddd": { "eeee": "我是深层的eeee", "fff": "gherhrjyukuiiu" } }""")
+    val json2 = Json.parse("""{ "aaa": 678910, "bbb": "我是萌萌哒的第二个bbbb" }""")
     val bcdJson = Json.parse("""{ "bcd": "我是第二个表的数据", "bbb": "aaaa", "ddd": { "eee": "sdfsgferhrthj", "fff": "gherhrjyukuiiu" } }""")
     val bcd2Json = Json.parse("""{ "bcd": 1234, "bbb": "aaaa", "ddd": { "eee": "sdfsgferhrthj", "fff": "gherhrjyukuiiu" } }""")
     val action = schemas.create >> {

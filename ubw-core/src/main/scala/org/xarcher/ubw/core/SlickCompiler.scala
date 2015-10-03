@@ -66,6 +66,14 @@ trait BooleanOptFilter extends UFilter {
 
 }
 
+class ColumnLike(column: UColumn, likeString: String) extends BooleanOptFilter {
+
+  override def repConvert(map: Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): ResultRep = {
+    map(column.query)(column.describe).asColumnOf[Option[String]].like(likeString)
+  }
+
+}
+
 trait UFilter extends BaseQueryMap {
 
   type ColumnType
