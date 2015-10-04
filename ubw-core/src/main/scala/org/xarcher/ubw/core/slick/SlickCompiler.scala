@@ -8,6 +8,9 @@ import scala.concurrent.ExecutionContext
 import scala.language.implicitConversions
 import org.xarcher.ubw.core.slick.UbwPgDriver.api._
 
+import org.xarcher.ubw.core.parse._
+import org.parboiled2._
+
 case class UItem(key: String, value: Option[JsValue])
 case class UColumn(alias: String/*列的别名*/, describe: String/*列的描述,相当于 select 的列的内容*/, query: String)
 
@@ -26,7 +29,7 @@ class UTableQuery(val tableName: String) extends UQuery {
   override val query = TableQuery(cons => new UbwTable(cons, tableName))
 
   override def columnGen(rep: ColumnsType) = {
-    case name: String => (rep.data +> name).?
+    case name: String => /*(rep.data +> name).?*/new JsValueRepParser(name, rep.data.?).`column-key`.run().get
   }
 
 }
