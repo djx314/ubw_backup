@@ -12,13 +12,15 @@ class ca1111111111111111111111111111(val input: ParserInput) extends Parser {
   def Expression: Rule1[Int] = rule {
     Term ~ zeroOrMore(
       '+' ~ Term ~> ((_: Int) + _)
-        | '-' ~ Term ~> ((_: Int) - _))
+        | '-' ~ Term ~> ((_: Int) - _)
+    )
   }
 
   def Term = rule {
     Factor ~ zeroOrMore(
       '*' ~ Factor ~> ((_: Int) * _)
-        | '/' ~ Factor ~> ((_: Int) / _))
+        | '/' ~ Factor ~> ((_: Int) / _)
+    )
   }
 
   def Factor = rule { Number | Parens }
@@ -52,24 +54,27 @@ class JsValueRepParser(val input: ParserInput, val jsValueRep: Rep[Option[JsValu
 
   //val getField: String => Rep[Option[JsValue]] =
 
-  def `column-key`: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { field ~> ((s: String) => jsValueRep +> s) }
+  def `column-key`: Rule1[Rep[Option[JsValue]]] = rule { field ~> ((s: String) => jsValueRep +> s) }
 
-  //def `js-value` = rule { `column-key` ~ OWS ~ "->" ~ OWS ~ field ~> ((mi: Rep[Option[JsValue]]) => (str: String) => (mi +> str)) }
+  def `js-value`: Rule1[Rep[Option[JsValue]]] = rule { `column-key` ~ OWS ~ "->" ~ OWS ~ field ~> ((mi: Rep[Option[JsValue]], str: String) => mi +> str) }
 
-  /*def Factor = rule { `js-value` | Parens }
+  def Factor: Rule1[Rep[Option[JsValue]]] = rule { `js-value` }
 
-  def Parens = rule { '(' ~ Expression ~ ')' }
+  def Parens: Rule1[Rep[Option[JsValue]]] = rule { '(' ~ Expression ~ ')' }
 
+  type aabb = Rule[Rep[Option[JsValue]] :: HNil, Rep[Option[JsValue]] :: HNil]
   def Expression: Rule1[Rep[Option[JsValue]]] = rule {
     Term ~ zeroOrMore(
-      '+' ~ Term ~> ((_: Int) + _)
-        | '-' ~ Term ~> ((_: Int) - _))
+      OWS ~ '+' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => mi)
+      | OWS ~ '-' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => mi)
+    )
   }
 
-  def Term = rule {
+  def Term: Rule1[Rep[Option[JsValue]]] = rule {
     Factor ~ zeroOrMore(
-      '*' ~ Factor ~> ((_: Int) * _)
-        | '/' ~ Factor ~> ((_: Int) / _))
-  }*/
+      OWS ~ '+' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => mi)
+      | OWS ~ '-' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => mi)
+    )
+  }
 
 }
