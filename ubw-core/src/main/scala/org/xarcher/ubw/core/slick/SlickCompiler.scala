@@ -29,7 +29,7 @@ class UTableQuery(val tableName: String) extends UQuery {
   override val query = TableQuery(cons => new UbwTable(cons, tableName))
 
   override def columnGen(rep: ColumnsType) = {
-    case name: String => /*(rep.data +> name).?*/new JsValueRepParser(name, rep.data.?).`column-key`.run().get
+    case name: String => /*(rep.data +> name).?*/new JsValueRepParser(name, rep.data.?).InputLine.run().get
   }
 
 }

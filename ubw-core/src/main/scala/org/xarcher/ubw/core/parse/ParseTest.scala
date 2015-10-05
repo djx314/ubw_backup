@@ -34,6 +34,8 @@ class ca1111111111111111111111111111(val input: ParserInput) extends Parser {
 
 class JsValueRepParser(val input: ParserInput, val jsValueRep: Rep[Option[JsValue]]) extends Parser with StringBuilding {
 
+  def InputLine = rule { `column-key` ~ EOI }
+
   private val `TEXTDATA-BASE` = CharPredicate.Printable -- '"'
   private val QTEXTDATA = `TEXTDATA-BASE` ++ "\r\n"
   val TEXTDATA = `TEXTDATA-BASE`//-- fieldDelimiter
