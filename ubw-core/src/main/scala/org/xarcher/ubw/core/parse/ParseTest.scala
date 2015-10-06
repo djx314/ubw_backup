@@ -1,5 +1,6 @@
 package org.xarcher.ubw.core.parse
 
+import org.parboiled2
 import org.parboiled2._
 
 import org.xarcher.ubw.core.slick.UbwPgDriver.api._
@@ -36,32 +37,29 @@ class ca1111111111111111111111111111(val input: ParserInput) extends Parser {
 
 class JsValueRepParser(val input: ParserInput, val jsValueRep: Rep[Option[JsValue]]) extends Parser with StringBuilding {
 
-  def InputLine = rule { `column-key` ~ EOI }
+  //def InputLine: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { `column-key` ~ EOI }
 
-  private val `TEXTDATA-BASE` = CharPredicate.Printable -- '"'
-  private val QTEXTDATA = `TEXTDATA-BASE` ++ "\r\n"
+  private val `TEXTDATA-BASE` = CharPredicate.Visible -- ' '
   val TEXTDATA = `TEXTDATA-BASE`//-- fieldDelimiter
 
-  def field = rule { `quoted-field` | `unquoted-field` }
+  //def field = zeroOrMore(`unquoted-field`)
 
-  def `quoted-field` = rule {
+  /*def `quoted-field` = rule {
     OWS ~ '"' ~ clearSB() ~ zeroOrMore((QTEXTDATA | "\"\"") ~ appendSB()) ~ '"' ~ OWS ~ push(sb.toString)
-  }
+  }*/
 
-  def `unquoted-field` = rule { capture(zeroOrMore(TEXTDATA)) }
+  def `unquoted-field`: Rule[HNil, HNil] = rule { OWS ~ TEXTDATA ~ OWS }
 
-  def OWS = rule { zeroOrMore(' ') }
+  def OWS: Rule[HNil, HNil] = rule { zeroOrMore(' ') }
 
-  //val getField: String => Rep[Option[JsValue]] =
-
-  def `column-key`: Rule1[Rep[Option[JsValue]]] = rule { field ~> ((s: String) => {
+  /*def `column-key`: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { field ~> ((s: String) => {
     println(s)
     jsValueRep +> s
-  }) }
+  }) }*/
 
-  def `js-value`: Rule1[Rep[Option[JsValue]]] = rule { `column-key` ~ OWS ~ "->" ~ OWS ~ field ~> ((mi: Rep[Option[JsValue]], str: String) => mi +> str) }
+  //def `js-value`/*: Rule1[Rep[Option[JsValue]]]*/ = rule { `column-key` ~ OWS ~ "->" ~ OWS ~ field ~> ((mi: Rep[Option[JsValue]], str: String) => mi +> str) }
 
-  def Factor: Rule1[Rep[Option[JsValue]]] = rule { `js-value` | Parens }
+  /*def Factor: Rule1[Rep[Option[JsValue]]] = rule { `js-value` | Parens }
 
   def Parens: Rule1[Rep[Option[JsValue]]] = rule { '(' ~ Expression ~ ')' }
 
@@ -78,6 +76,6 @@ class JsValueRepParser(val input: ParserInput, val jsValueRep: Rep[Option[JsValu
       OWS ~ '*' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => (mi.asColumnOf[Option[BigDecimal]] * str.asColumnOf[Option[BigDecimal]]).asColumnOf[Option[JsValue]])
       | OWS ~ '/' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => (mi.asColumnOf[Option[BigDecimal]] / str.asColumnOf[Option[BigDecimal]]).asColumnOf[Option[JsValue]])
     )
-  }
+  }*/
 
 }

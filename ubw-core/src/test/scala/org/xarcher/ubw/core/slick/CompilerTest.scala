@@ -25,7 +25,7 @@ with BeforeAndAfter
 with OneInstancePerTest {
 
   val db = Database.forURL(
-    url = "jdbc:postgresql://192.168.1.110:5432/ubw?user=postgres",
+    url = "jdbc:postgresql://127.0.0.1:5432/ubw?user=postgres",
     driver = "org.postgresql.Driver",
     user = "postgres",
     password = "postgres"
@@ -69,7 +69,7 @@ with OneInstancePerTest {
         "aaaa2" -> new UTableQuery("bcd")
       )
       override val columns = List(
-        UColumn("黑狗", """"bbbcc"->"sb"-("aaa"->"sb")""", "aaaa1"),
+        UColumn("黑狗", """bbbcc -> sb - ( aaa -> sb ) - ( bbbcc -> sb - ( aaa -> sb ) )""", "aaaa1"),
         UColumn("喵了个咪", "bbb", "aaaa1"),
         UColumn("喵了个jb", "bcd", "aaaa2"),
         UColumn("喵了个大jb","ddd", "aaaa1")
