@@ -54,26 +54,29 @@ class JsValueRepParser(val input: ParserInput, val jsValueRep: Rep[Option[JsValu
 
   //val getField: String => Rep[Option[JsValue]] =
 
-  def `column-key`: Rule1[Rep[Option[JsValue]]] = rule { field ~> ((s: String) => jsValueRep +> s) }
+  def `column-key`: Rule1[Rep[Option[JsValue]]] = rule { field ~> ((s: String) => {
+    println(s)
+    jsValueRep +> s
+  }) }
 
   def `js-value`: Rule1[Rep[Option[JsValue]]] = rule { `column-key` ~ OWS ~ "->" ~ OWS ~ field ~> ((mi: Rep[Option[JsValue]], str: String) => mi +> str) }
 
-  def Factor: Rule1[Rep[Option[JsValue]]] = rule { `js-value` }
+  def Factor: Rule1[Rep[Option[JsValue]]] = rule { `js-value` | Parens }
 
   def Parens: Rule1[Rep[Option[JsValue]]] = rule { '(' ~ Expression ~ ')' }
 
   type aabb = Rule[Rep[Option[JsValue]] :: HNil, Rep[Option[JsValue]] :: HNil]
   def Expression: Rule1[Rep[Option[JsValue]]] = rule {
     Term ~ zeroOrMore(
-      OWS ~ '+' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => mi)
-      | OWS ~ '-' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => mi)
+      OWS ~ '+' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => (mi.asColumnOf[Option[BigDecimal]] + str.asColumnOf[Option[BigDecimal]]).asColumnOf[Option[JsValue]])
+      | OWS ~ '-' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => (mi.asColumnOf[Option[BigDecimal]] - str.asColumnOf[Option[BigDecimal]]).asColumnOf[Option[JsValue]])
     )
   }
 
   def Term: Rule1[Rep[Option[JsValue]]] = rule {
     Factor ~ zeroOrMore(
-      OWS ~ '+' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => mi)
-      | OWS ~ '-' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => mi)
+      OWS ~ '*' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => (mi.asColumnOf[Option[BigDecimal]] * str.asColumnOf[Option[BigDecimal]]).asColumnOf[Option[JsValue]])
+      | OWS ~ '/' ~ OWS ~ `column-key` ~> ((mi: Rep[Option[JsValue]], str: Rep[Option[JsValue]]) => (mi.asColumnOf[Option[BigDecimal]] / str.asColumnOf[Option[BigDecimal]]).asColumnOf[Option[JsValue]])
     )
   }
 

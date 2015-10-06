@@ -69,7 +69,7 @@ with OneInstancePerTest {
         "aaaa2" -> new UTableQuery("bcd")
       )
       override val columns = List(
-        UColumn("黑狗", "\"abcdee\"\"fasdf\"".stripMargin, "aaaa1"),
+        UColumn("黑狗", """"bbbcc"->"sb"-("aaa"->"sb")""", "aaaa1"),
         UColumn("喵了个咪", "bbb", "aaaa1"),
         UColumn("喵了个jb", "bcd", "aaaa2"),
         UColumn("喵了个大jb","ddd", "aaaa1")
