@@ -37,9 +37,9 @@ class ca1111111111111111111111111111(val input: ParserInput) extends Parser {
 
 class JsValueRepParser(val input: ParserInput, val jsValueRep: Rep[Option[JsValue]]) extends Parser {
 
-  def InputLine: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { `column-key11` ~ OWS ~ EOI }
+  def InputLine: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { kaaa ~ OWS ~ EOI }
 
-  private val `TEXTDATA-BASE` = CharPredicate.Visible -- ' ' -- '-'
+  private val `TEXTDATA-BASE` = CharPredicate.Visible -- ' ' -- '-' -- '>'
   private val numericText = CharPredicate.Digit
   val TEXTDATA = `TEXTDATA-BASE` //-- fieldDelimiter
 
@@ -59,7 +59,7 @@ class JsValueRepParser(val input: ParserInput, val jsValueRep: Rep[Option[JsValu
   }
 
   def `column-key`: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { OWS ~ capture(field) ~> ((s: String) => {
-    println(s)
+    println(s + "  1234")
     jsValueRep +> s
   }) }
 
@@ -70,15 +70,20 @@ class JsValueRepParser(val input: ParserInput, val jsValueRep: Rep[Option[JsValu
     /*(aabb ~> ((kk: Rep[Option[JsValue]], s: String) => {
       println(s.toInt)
       kk -> s.toInt
-    })) | */(ccdd ~> ((kk: Rep[Option[JsValue]], s: String) => {
-      println(s)
+    })) |*/(ccdd ~> ((kk: Rep[Option[JsValue]], s: String) => {
+      println(s + "  5678")
       kk +> s
     }))
   ) }
 
-  def kaaa: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { OWS ~ "(" ~ OWS ~ `column-key11` ~ OWS ~ ")" ~ OWS }
+  def aaaaaa: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { OWS ~ `column-key11` ~ ccdd ~> ((kk: Rep[Option[JsValue]], s: String) => {
+    println(s + "  5678")
+    kk +> s
+  } ) }
 
-  def kbbb: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { `column-key11` | kaaa }
+  def kaaa: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { OWS ~ (aaaaaa | `column-key11`) ~ OWS }
+
+  def kbbb: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { kaaa | `column-key11` }
 
   //def `js-value`/*: Rule1[Rep[Option[JsValue]]]*/ = rule { `column-key` ~ OWS ~ "->" ~ OWS ~ field ~> ((mi: Rep[Option[JsValue]], str: String) => mi +> str) }
 

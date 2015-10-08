@@ -34,7 +34,7 @@ object ParseTest extends App {
   try {
 
     val aa = tableaa.map(ss => {
-      new JsValueRepParser("      abcdefgh -> bcde  ->       abcde    ", ss.data.?).InputLine.run() match {
+      new JsValueRepParser("      abcdefgh -> bcde ->       abcde    ", ss.data.?).InputLine.run() match {
         case Success(s) => s
         case Failure(e) =>
           e.printStackTrace
