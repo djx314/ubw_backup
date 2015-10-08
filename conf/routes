@@ -1,0 +1,14 @@
+# Map static resources from the /public folder to the /assets URL path
+GET         /assets/*file            controllers.Assets.at(path="/public", file)
+
+GET         /webjars/*file           controllers.WebJarAssets.at(file)
+
+GET         /javascriptRoutes        controllers.IndexController.javascriptRoutes
+
+GET         /                        controllers.IndexController.index
+
+GET         /menuItem                controllers.MenuItemController.list
+
+POST        /dataCreate              controllers.DataCreateController.create
+
+GET         /dataToCreate            controllers.DataCreateController.list
