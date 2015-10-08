@@ -35,14 +35,16 @@ class ca1111111111111111111111111111(val input: ParserInput) extends Parser {
 
 //new Calculator("1+1").InputLine.run() // evaluates to `scala.util.Success(2)`
 
-class JsValueRepParser(val input: ParserInput, val jsValueRep: Rep[Option[JsValue]]) extends Parser with StringBuilding {
+class JsValueRepParser(val input: ParserInput, val jsValueRep: Rep[Option[JsValue]]) extends Parser {
 
-  //def InputLine: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { `column-key` ~ EOI }
+  def InputLine: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { `column-key11` ~ OWS ~ EOI }
 
-  private val `TEXTDATA-BASE` = CharPredicate.Visible -- ' '
+  private val `TEXTDATA-BASE` = CharPredicate.Visible -- ' ' -- '-'
+  private val numericText = CharPredicate.Digit
   val TEXTDATA = `TEXTDATA-BASE` //-- fieldDelimiter
 
-  //def field = zeroOrMore(`unquoted-field`)
+  def field = rule { oneOrMore(`TEXTDATA-BASE`) }
+  def numericField = rule { oneOrMore(numericText) }
 
   /*def `quoted-field` = rule {
     OWS ~ '"' ~ clearSB() ~ zeroOrMore((QTEXTDATA | "\"\"") ~ appendSB()) ~ '"' ~ OWS ~ push(sb.toString)
@@ -56,10 +58,27 @@ class JsValueRepParser(val input: ParserInput, val jsValueRep: Rep[Option[JsValu
     zeroOrMore(' ')
   }
 
-  /*def `column-key`: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { field ~> ((s: String) => {
+  def `column-key`: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { OWS ~ capture(field) ~> ((s: String) => {
     println(s)
     jsValueRep +> s
-  }) }*/
+  }) }
+
+  def aabb = rule { OWS ~ "->" ~ OWS ~ capture(numericField) }
+  def ccdd = rule { OWS ~ "->" ~ OWS ~ capture(field) }
+
+  def `column-key11`: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { `column-key` ~ zeroOrMore(
+    /*(aabb ~> ((kk: Rep[Option[JsValue]], s: String) => {
+      println(s.toInt)
+      kk -> s.toInt
+    })) | */(ccdd ~> ((kk: Rep[Option[JsValue]], s: String) => {
+      println(s)
+      kk +> s
+    }))
+  ) }
+
+  def kaaa: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { OWS ~ "(" ~ OWS ~ `column-key11` ~ OWS ~ ")" ~ OWS }
+
+  def kbbb = rule { `column-key11` | kaaa }
 
   //def `js-value`/*: Rule1[Rep[Option[JsValue]]]*/ = rule { `column-key` ~ OWS ~ "->" ~ OWS ~ field ~> ((mi: Rep[Option[JsValue]], str: String) => mi +> str) }
 
