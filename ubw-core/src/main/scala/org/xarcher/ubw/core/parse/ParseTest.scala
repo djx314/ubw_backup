@@ -78,7 +78,7 @@ class JsValueRepParser(val input: ParserInput, val jsValueRep: Rep[Option[JsValu
 
   def kaaa: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { OWS ~ "(" ~ OWS ~ `column-key11` ~ OWS ~ ")" ~ OWS }
 
-  def kbbb = rule { `column-key11` | kaaa }
+  def kbbb: Rule[HNil, Rep[Option[JsValue]] :: HNil] = rule { `column-key11` | kaaa }
 
   //def `js-value`/*: Rule1[Rep[Option[JsValue]]]*/ = rule { `column-key` ~ OWS ~ "->" ~ OWS ~ field ~> ((mi: Rep[Option[JsValue]], str: String) => mi +> str) }
 
