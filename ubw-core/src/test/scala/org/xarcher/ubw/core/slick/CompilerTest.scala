@@ -69,7 +69,7 @@ with OneInstancePerTest {
         "aaaa2" -> new UTableQuery("bcd")
       )
       override val columns = List(
-        UColumn("黑狗", """bbbcc -> sb - ( aaa -> sb ) - ( bbbcc -> sb - ( aaa -> sb ) )""", "aaaa1"),
+        UColumn("黑狗", """aaa""", "aaaa1"),//bbbcc -> sb - ( aaa -> sb ) - ( bbbcc -> sb - ( aaa -> sb ) )
         UColumn("喵了个咪", "bbb", "aaaa1"),
         UColumn("喵了个jb", "bcd", "aaaa2"),
         UColumn("喵了个大jb","ddd", "aaaa1")
@@ -90,11 +90,11 @@ with OneInstancePerTest {
       override val columns = parentQueryMap
       override val converts = List(
         {
-          new UColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 567) and
+          new UColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 567)/*and
           new UColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 678) or
-          new UColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 789) and
+          new UColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 789)and
           new UColumnLike(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), "6789%") and
-          new UColumnLike(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), "%我是萌萌哒的第二个%")
+          new UColumnLike(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), "%我是萌萌哒的第二个%")*/
         },
         new SortBy(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), None),
         new SortBy(UColumn("xxxx", "喵了个大jb", "啊哈哈哈哈"), Option(true))

@@ -81,10 +81,13 @@ __        __            _
       "com.lihaoyi" % "ammonite-repl" % "0.4.8" cross CrossVersion.full,
 
       //slick
-      "com.github.tminglei" %% "slick-pg" % "0.10.0-RC1",
-      "com.typesafe.slick" %% "slick" % "3.1.0-RC2",
-      "com.typesafe.slick" %% "slick-hikaricp" % "3.1.0-RC2" exclude("com.zaxxer", "HikariCP-java6"),
-      "com.typesafe.play" %% "play-slick" % "1.1.0-RC2",
+      "com.github.tminglei" %% "slick-pg" % "0.10.0",
+      "com.github.tminglei" %% "slick-pg_jts" % "0.10.0",
+      "com.github.tminglei" %% "slick-pg_play-json" % "0.10.0",
+
+      "com.typesafe.slick" %% "slick" % "3.1.0",
+      "com.typesafe.slick" %% "slick-hikaricp" % "3.1.0" exclude("com.zaxxer", "HikariCP-java6"),
+      "com.typesafe.play" %% "play-slick" % "1.1.0",
       "com.chuusai" %% "shapeless" % "2.2.5",
       "org.scalatest" %% "scalatest" % "2.2.4" % "test",
       "com.h2database" % "h2" % "1.4.181" % "test",

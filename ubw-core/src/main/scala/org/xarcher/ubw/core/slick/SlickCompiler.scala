@@ -2,6 +2,7 @@ package org.xarcher.ubw.core.slick
 
 import org.joda.time.DateTime
 import play.api.libs.json._
+import slick.ast.Library.SqlFunction
 import slick.lifted.{CanBeQueryCondition, ColumnOrdered, TupleShape}
 import scala.language.higherKinds
 import scala.concurrent.ExecutionContext
@@ -43,8 +44,12 @@ class UTableQuery(val tableName: String) extends UQuery {
 
 class UColumnGt(column: UColumn, num: Long) extends UBooleanOptFilter {
 
+  //val miaolegemi = SimpleFunction.unary[Option[JsValue], Option[Long]]("convert_to_integer")
+
   override def repConvert(map: Map[String, PartialFunction[String, Rep[Option[JsValue]]]]): ResultRep = {
     map(column.query)(column.describe) > Json.toJson(num)
+    //要 +>>
+    //miaolegemi(map(column.query)(column.describe)) > num
   }
 
 }
