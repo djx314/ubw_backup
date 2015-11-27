@@ -1,6 +1,0 @@
-<!-- ko foreach: { data: tree.store.viewData[data[tree.store.idProperty]()], as: 'nodeViewData'} -->
-<div class="treeNode" data-bind="click: function(anyThing, event) { $component.tree.itemClick($component.data, event); return false; }, hoverClass: 'node-selected', style: { 'paddingLeft': (nodeViewData.deep() - 1) * 16 + 'px' }, css: {'leaf': $component.data[$component.tree.store.fileTypeProperty]() === 'leaf', 'folder': $component.data[$component.tree.store.fileTypeProperty]() === 'folder', 'isOpened': nodeViewData.isOpened() === true, 'isClosed': nodeViewData.isOpened() === false }">
-	<a class="treeContent treeIcon">&nbsp;</a>
-	<a class="treeContent" href="#" data-bind="text: $component.data[$component.tree.store.nameProperty]"></a>
-</div>
-<!-- /ko -->
