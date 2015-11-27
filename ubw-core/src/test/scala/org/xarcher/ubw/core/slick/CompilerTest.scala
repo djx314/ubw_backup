@@ -1,4 +1,4 @@
-package org.xarcher.ubw.core
+package org.xarcher.ubw.core.slick
 
 import java.sql.{DriverManager, Timestamp}
 
@@ -7,7 +7,7 @@ import play.api.libs.json._
 import scala.annotation.tailrec
 import scalaz._, Scalaz._
 import scala.concurrent.ExecutionContext
-import org.xarcher.ubw.core.UbwPgDriver.api._
+import org.xarcher.ubw.core.slick.UbwPgDriver.api._
 import org.scalatest._
 import org.scalatest.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -25,17 +25,17 @@ with BeforeAndAfter
 with OneInstancePerTest {
 
   val db = Database.forURL(
-    url = "jdbc:postgresql://192.168.1.110:5432/ubw?user=postgres",
+    url = "jdbc:postgresql://127.0.0.1:5432/ubw?user=postgres",
     driver = "org.postgresql.Driver",
     user = "postgres",
     password = "postgres"
   )
 
   //kay 和 query 的对应信息
-  val tQueryMap: List[(String, UContent)] =
+  val tQueryMap: List[(String, UQuery)] =
     List(
-      "aaaa1" -> new UTableQueryContent("abc"),
-      "aaaa2" -> new UTableQueryContent("bcd")
+      "aaaa1" -> new UTableQuery("abc"),
+      "aaaa2" -> new UTableQuery("bcd")
     )
 
   //query 的 key 和列操作的映射关系信息
@@ -47,10 +47,10 @@ with OneInstancePerTest {
 
   //翻译 list 信息到 query
   def run(implicit ec: ExecutionContext): DBIO[Seq[Seq[UItem]]] = {
-    new UQuery {
-      override val contents = List(
-        "aaaa1" -> new UTableQueryContent("abc"),
-        "aaaa2" -> new UTableQueryContent("bcd")
+    new UContent {
+      override val querys = List(
+        "aaaa1" -> new UTableQuery("abc"),
+        "aaaa2" -> new UTableQuery("bcd")
       )
       override val columns = List(
         UColumn("黑狗", "aaa", "aaaa1"),
@@ -58,18 +58,18 @@ with OneInstancePerTest {
         UColumn("喵了个jb", "bcd", "aaaa2"),
         UColumn("喵了个大jb","ddd", "aaaa1")
       )
-      override val converts = List(new ColumnGt(UColumn("xxxx", "bcd", "aaaa2"), 234))
+      override val converts = List(new UColumnGt(UColumn("xxxx", "bcd", "aaaa2"), 234))
     }.result
   }
 
   def runWithSub(implicit ec: ExecutionContext): DBIO[Seq[Seq[UItem]]] = {
-    val subContent = new UQuery {
-      override val contents = List(
-        "aaaa1" -> new UTableQueryContent("abc"),
-        "aaaa2" -> new UTableQueryContent("bcd")
+    val subContent = new UContent {
+      override val querys = List(
+        "aaaa1" -> new UTableQuery("abc"),
+        "aaaa2" -> new UTableQuery("bcd")
       )
       override val columns = List(
-        UColumn("黑狗", "aaa", "aaaa1"),
+        UColumn("黑狗", """aaa""", "aaaa1"),//bbbcc -> sb - ( aaa -> sb ) - ( bbbcc -> sb - ( aaa -> sb ) )
         UColumn("喵了个咪", "bbb", "aaaa1"),
         UColumn("喵了个jb", "bcd", "aaaa2"),
         UColumn("喵了个大jb","ddd", "aaaa1")
@@ -85,16 +85,16 @@ with OneInstancePerTest {
       UColumn("全靠浪","喵了个jb", "啊哈哈哈哈"),
       UColumn("夏目友人帐","喵了个大jb", "啊哈哈哈哈")
     )
-    new UQuery {
-      override val contents = List("啊哈哈哈哈" -> subContent)
+    new UContent {
+      override val querys = List("啊哈哈哈哈" -> subContent)
       override val columns = parentQueryMap
       override val converts = List(
         {
-          new ColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 567) and
-          new ColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 678) or
-          new ColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 789) and
-          new ColumnLike(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), "6789%") and
-          new ColumnLike(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), "%我是萌萌哒的第二个%")
+          new UColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 567)/*and
+          new UColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 678) or
+          new UColumnGt(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), 789)and
+          new UColumnLike(UColumn("xxxx", "黑狗", "啊哈哈哈哈"), "6789%") and
+          new UColumnLike(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), "%我是萌萌哒的第二个%")*/
         },
         new SortBy(UColumn("xxxx", "喵了个咪", "啊哈哈哈哈"), None),
         new SortBy(UColumn("xxxx", "喵了个大jb", "啊哈哈哈哈"), Option(true))

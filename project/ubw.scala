@@ -41,16 +41,7 @@ __        __            _
   .settings(
     name := "ubw",
     version := "0.0.1",
-    if (org.xarcher.sbt.OSName.isWindows)
-      initialCommands in console += """ammonite.repl.Repl.run("repl.frontEnd() = ammonite.repl.frontend.FrontEnd.JLineWindows");"""
-    else if (org.xarcher.sbt.OSName.isLinux)
-      initialCommands in console += """ammonite.repl.Repl.run("");"""
-    else
-      initialCommands in console += """""",
     libraryDependencies ++= Seq(
-
-      //repl
-      "com.lihaoyi" % "ammonite-repl" % "0.4.8" cross CrossVersion.full,
 
       //webjars
       "org.webjars" % "json2" % "20140204",
@@ -80,16 +71,23 @@ __        __            _
   )
   //commonSettings end
   .dependsOn(`我要做个大新闻`)
+  .aggregate(`我要做个大新闻`)
 
   lazy val `我要做个大新闻` = (project in file("./ubw-core"))
   .settings(
     libraryDependencies ++= Seq(
 
+      //repl
+      "com.lihaoyi" % "ammonite-repl" % "0.4.8" cross CrossVersion.full,
+
       //slick
-      "com.github.tminglei" %% "slick-pg" % "0.10.0-RC1",
-      "com.typesafe.slick" %% "slick" % "3.1.0-RC2",
-      "com.typesafe.slick" %% "slick-hikaricp" % "3.1.0-RC2" exclude("com.zaxxer", "HikariCP-java6"),
-      "com.typesafe.play" %% "play-slick" % "1.1.0-RC2",
+      "com.github.tminglei" %% "slick-pg" % "0.10.0",
+      "com.github.tminglei" %% "slick-pg_jts" % "0.10.0",
+      "com.github.tminglei" %% "slick-pg_play-json" % "0.10.0",
+
+      "com.typesafe.slick" %% "slick" % "3.1.0",
+      "com.typesafe.slick" %% "slick-hikaricp" % "3.1.0" exclude("com.zaxxer", "HikariCP-java6"),
+      "com.typesafe.play" %% "play-slick" % "1.1.0",
       "com.chuusai" %% "shapeless" % "2.2.5",
       "org.scalatest" %% "scalatest" % "2.2.4" % "test",
       "com.h2database" % "h2" % "1.4.181" % "test",
@@ -104,10 +102,12 @@ __        __            _
       "org.scalaz" %% "scalaz-core" % "7.2.0-M3",
       "org.scalaz" %% "scalaz-effect" % "7.2.0-M3",
       "org.scalaz" %% "scalaz-iteratee" % "7.2.0-M3",
-      "org.scalaz" %% "scalaz-concurrent" % "7.2.0-M3"
+      "org.scalaz" %% "scalaz-concurrent" % "7.2.0-M3",
+
+      "org.parboiled" %% "parboiled" % "2.1.0"
 
     )
   )
-  .settings(CustomSettings.scalaSettings ++ CustomSettings.resolversSettings)
+  .settings(CustomSettings.scalaSettings ++ CustomSettings.resolversSettings ++ CustomSettings.ammoniteConsoleInit)
 
 }

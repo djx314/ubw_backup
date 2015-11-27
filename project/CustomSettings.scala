@@ -5,7 +5,7 @@ import Keys._
 
 object CustomSettings {
   
-  def customSettings = scalaSettings ++ resolversSettings ++ extAlias ++ playSettings ++ graphSettings ++ assemblyPluginSettings ++ nativePackageSettings
+  def customSettings = scalaSettings ++ resolversSettings ++ extAlias ++ playSettings ++ graphSettings ++ assemblyPluginSettings ++ nativePackageSettings ++ ammoniteConsoleInit
   
   def scalaSettings =
     Seq(
@@ -28,6 +28,8 @@ object CustomSettings {
   def extAliasInfo = List(
     Option("xeclipse" -> "eclipse with-source=true skip-parents=false"),
     Option("s" -> "我要做个大新闻/test"),
+    Option("r" -> "我要做个大新闻/test:run"),
+    Option("c" -> "我要做个大新闻/test:console"),
     if (OSName.isWindows)
       Option(windowsGitInitCommandMap)
     else if (OSName.isLinux)
@@ -44,7 +46,9 @@ object CustomSettings {
         |git config --global i18n.commitencoding utf-8;
         |git config --global i18n.logoutputencoding gbk;
         |git config --global core.autocrlf true;
-        |git config core.editor \"extras/npp.6.5.1/startNote.bat\"
+        |git config core.editor \"extras/npp.6.5.1/startNote.bat\";
+        |git config user.email "djx314@sina.cn";
+        |git config user.name "djx314";
       """.stripMargin
 
   val linuxGitInitCommandMap = "linuxGitInit" ->
@@ -52,7 +56,9 @@ object CustomSettings {
         |git config --global i18n.commitencoding utf-8;
         |git config --global i18n.logoutputencoding utf-8;
         |git config --global core.autocrlf true;
-        |git config core.editor gedit
+        |git config core.editor gedit;
+        |git config user.email "djx314@sina.cn";
+        |git config user.name "djx314";
       """.stripMargin
 
   val playSettings = {
@@ -111,5 +117,13 @@ object CustomSettings {
     )
 
   }
+
+  val ammoniteConsoleInit =
+    if (org.xarcher.sbt.OSName.isWindows)
+      Seq(initialCommands in console += """ammonite.repl.Repl.run("repl.frontEnd() = ammonite.repl.frontend.FrontEnd.JLineWindows");""")
+    else if (org.xarcher.sbt.OSName.isLinux)
+      Seq(initialCommands in console += """ammonite.repl.Repl.run("");""")
+    else
+      Seq()
 
 }
