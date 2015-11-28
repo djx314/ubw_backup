@@ -31,7 +31,6 @@ resolvers ++= Seq(
 
 externalResolvers := Resolver.withDefaultResolvers(resolvers.value, mavenCentral = false)
 
-//net.virtualvoid.sbt.graph.Plugin.graphSettings
 CustomSettings.customSettings
 
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0-M5" cross CrossVersion.full)
