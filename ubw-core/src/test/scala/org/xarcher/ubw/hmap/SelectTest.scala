@@ -5,6 +5,7 @@ import org.scalatest._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent._
 import org.scalatest.time.{Millis, Span}
+import slick.lifted.{Ordered, CanBeQueryCondition}
 
 import scala.language.higherKinds
 import slick.driver.H2Driver.api._
@@ -77,9 +78,41 @@ with OneInstancePerTest {
 
     val query = permissionTq.filter(_.name === "aa")
 
+    permissionTq.filter(_.name === "1234")
+
     println(db.run(query.result).futureValue(oneSecondTimeOut))
 
     SelectMacro.decodePrintln('喵了个咪)
+  }
+
+  "aa" should "bb" in {
+
+    case class SqlFilter[R <: Rep[_] : CanBeQueryCondition](f: () => R) {
+      implicit val canBeQueryCondition = implicitly[CanBeQueryCondition[R]]
+    }
+    case class SqlOrder[R](f: () => R)(implicit val wt: R => Ordered)
+    case class SqlSelect[T, U](select: () => T)(implicit val shape: Shape[_ <: ShapeLevel, T, U, T])
+    case class SqlWrapper[T, U](
+      select: () => SqlSelect[T, U],
+      filters: List[() => SqlFilter[_]],
+      orders: List[() => SqlOrder[_]]
+    )
+
+    def bb(table1: PermissionTable): SqlWrapper[(Rep[String], Rep[String]), (String, String)] = {
+      ???
+    }
+
+    case class Nmlgb()
+
+    object aabb {
+      def aabb(query: TableQuery[PermissionTable]) = {
+        query.flatMap(table1 => {
+          val wrapper = bb(table1)
+          query.map(table2 => wrapper.select().select())(wrapper.select().shape)
+        })
+      }
+    }
+
   }
 
 }
