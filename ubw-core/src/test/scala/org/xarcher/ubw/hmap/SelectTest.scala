@@ -9,7 +9,7 @@ import org.scalatest.time.{Millis, Span}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.higherKinds
 import slick.driver.H2Driver.api._
-import slick.lifted.{Ordered, CanBeQueryCondition}
+import slick.lifted.{AbstractTable, Ordered, CanBeQueryCondition}
 
 /**
   * Created by djx314 on 15-6-22.
@@ -87,73 +87,76 @@ with OneInstancePerTest {
 
   "aa" should "bb" in {
 
-    case class SqlFilter[R <: Rep[_]](f: () => R)(implicit val wt: CanBeQueryCondition[R]) {
+    case class SqlFilter[S, R <: Rep[_] : CanBeQueryCondition](f: S => R) {
 
-      def myFilter[E, U, A[_]](query: Query[E, U, A]): Query[E, U, A] = {
-        query.filter(_ => f())
+      val wt = implicitly[CanBeQueryCondition[R]]
+      def myFilter[U, A[_]](query: Query[S, U, A]): Query[S, U, A] = {
+        query.filter(table1 => f(table1))(wt)
       }
 
     }
-    case class SqlOrder[R](f: () => R)(implicit val wt: R => Ordered) {
+    case class SqlOrder[S, R](f: S => R)(implicit val wt: R => Ordered) {
 
-      def myOrder[E, U, A[_]](query: Query[E, U, A]): Query[E, U, A] = {
-        query.sortBy(_ => f())
+      def myOrder[U, A[_]](query: Query[S, U, A]): Query[S, U, A] = {
+        query.sortBy(table1 => wt(f(table1)))
       }
 
     }
-    case class SqlSelect[T, U](select: () => T)(implicit val shape: Shape[_ <: FlatShapeLevel, T, U, T])
-    case class SqlWrapper[T, U](
-      select: () => SqlSelect[T, U],
-      filters: List[() => SqlFilter[_ <: Rep[_]]] = Nil,
-      orders: List[() => SqlOrder[_]] = Nil
+    case class SqlSelect[S, T, U](select: S => T)(implicit val shape: Shape[_ <: FlatShapeLevel, T, U, T])
+    case class SqlWrapper[S, T, U](
+      select: SqlSelect[S, T, U],
+      filters: List[SqlFilter[S, _ <: Rep[_]]] = Nil,
+      orders: List[SqlOrder[S, _]] = Nil
     ) {
 
-      def where[R <: Rep[_] : CanBeQueryCondition](f: => R) = {
-        val filter1 = SqlFilter(() => f)
-        this.copy(filters = (() => filter1) :: this.filters)
+      def where[R <: Rep[_] : CanBeQueryCondition](f: S => R) = {
+        val filter1 = SqlFilter(f)
+        this.copy(filters = filter1 :: this.filters)
       }
 
-      def order_by[R](f: => R)(implicit wt: R => Ordered) = {
-        val order1 = SqlOrder(() => f)
-        this.copy(orders = (() => order1) :: this.orders)
+      def order_by[R <% Ordered](f: S => R) = {
+        val order1 = SqlOrder(f)
+        this.copy(orders = order1 :: this.orders)
       }
 
     }
 
     object select {
 
-      def apply[T, U](columns: => T)(implicit shape: Shape[_ <: FlatShapeLevel, T, U, T]) = {
-        val select1 = SqlSelect(() => columns)
+      def apply[S, T, U](columns: S => T)(implicit shape: Shape[_ <: FlatShapeLevel, T, U, T]) = {
+        val select1 = SqlSelect(columns)
         SqlWrapper(
-          select = () => select1
+          select = select1
         )
       }
 
     }
 
-    def bb(table1: PermissionTable) = {
+    /*def bb(table1: PermissionTable) = {
       select { (table1.name, table1.typeName) } where { table1.describe === "cc" } order_by table1.typeName
+    }*/
+
+    def bb = {
+      select(
+        (table1: PermissionTable) => {
+          (table1.typeName, table1.name)
+        }
+      )
+      .where (table1 => table1.describe === "cc")
+      .order_by (table1 => table1.name)
     }
 
     case class Nmlgb()
 
     object aabb {
       def aabb(query: Query[PermissionTable, Permission, Seq]) = {
-        query.flatMap(table1 => {
-          val wrapper = bb(table1)
-          /*val query1 = query
-            .map(table2 => wrapper.select().select())(wrapper.select().shape)*/
-          val filterQuery1 = wrapper.filters.foldLeft(query)((eachQuery, eachFilter) => {
-            val eachFilter1 = eachFilter()
-            eachFilter1.myFilter(eachQuery)
-          })
-          val orderQuery1 = wrapper.orders.foldLeft(filterQuery1)((eachQuery, eachOrder) => {
-            val eachOrder1 = eachOrder()
-            eachOrder1.myOrder(eachQuery)
-          })
-          orderQuery1
-            .map(table2 => wrapper.select().select())(wrapper.select().shape)
+        val filterQuery = bb.filters.foldLeft(query)((fQuery, eachFilter) => {
+          eachFilter.myFilter(fQuery)
         })
+        val sortQuery = bb.orders.foldLeft(filterQuery)((fQuery, eachOrder) => {
+          eachOrder.myOrder(fQuery)
+        })
+        sortQuery.map(table1 => bb.select.select(table1))(bb.select.shape)
       }
     }
 
