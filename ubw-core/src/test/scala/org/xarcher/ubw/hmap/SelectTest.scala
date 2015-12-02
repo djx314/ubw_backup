@@ -24,9 +24,9 @@ case class Permission(
 
 class PermissionTable(tag: slick.driver.H2Driver.api.Tag) extends Table[Permission](tag, "S_PERMISSION_TYPE") {
   def id = column[Long]("ID", O.PrimaryKey, O.AutoInc)
-  def name = column[String]("TYPE_NAME")
-  def typeName = column[String]("TYPE_NICK_NAME")
-  def describe = column[String]("TYPE_DESCRIBE")
+  def name = column[String]("NAME")
+  def typeName = column[String]("TYPE_NAME")
+  def describe = column[String]("DESCRIBE")
 
   def * = (id.?, name, typeName, describe) <> (Permission.tupled, Permission.unapply _)
 }
@@ -107,39 +107,65 @@ with OneInstancePerTest {
 
   "aa" should "bb" in {
 
-    case class SqlFilter[S, R <: Rep[_] : CanBeQueryCondition](f: S => R) {
+    trait SqlFilter[S] {
 
-      val wt = implicitly[CanBeQueryCondition[R]]
-      @inline def myFilter[U, A[_]](query: Query[S, U, A]): Query[S, U, A] = {
-        query.filter(table1 => f(table1))(wt)
-      }
+      type ResultType <: Rep[_]
+      type TableType = S
+      val wt: CanBeQueryCondition[ResultType]
+      val convert: TableType => ResultType
 
     }
-    case class SqlOrder[S, R](f: S => R)(implicit val wt: R => Ordered) {
+
+    trait SqlOrder[S] {
+
+      type ResultType
+      type TableType = S
+      val wt: ResultType => Ordered
+      val convert: TableType => ResultType
+
+    }
+
+    /*case class SqlFilter[S, R <: Rep[_] : CanBeQueryCondition](f: S => R) extends SqlFilterAbs {
+
+      override val convert = f
+      override type TableType = S
+      override type ResultType = R
+      override val wt = implicitly[CanBeQueryCondition[ResultType]]
+      /*@inline def myFilter[U, A[_]](query: Query[S, U, A]): Query[S, U, A] = {
+        query.filter(table1 => f(table1))(wt)
+      }*/
+
+    }*/
+    /*case class SqlOrder[S, R](f: S => R)(implicit val wt: R => Ordered) {
 
       @inline def myOrder[U, A[_]](query: Query[S, U, A]): Query[S, U, A] = {
         query.sortBy(table1 => wt(f(table1)))
       }
 
-    }
-    case class SqlSelect[S, T, R, G](f: S => R)(implicit val shape: Shape[_ <: FlatShapeLevel, R, T, G]) {
-      /*def myMap[A[_]](query: Query[S, _, A]): Query[G, T, A] = {
-        query.map(select)(shape)
-      }*/
-    }
+    }*/
+    case class SqlSelect[S, T, R, G](f: S => R)(implicit val shape: Shape[_ <: FlatShapeLevel, R, T, G])
+
     case class SqlWrapper[S, T, U, G](
       select: SqlSelect[S, T, U, G],
-      filters: List[SqlFilter[S, _ <: Rep[_]]] = Nil,
-      orders: List[SqlOrder[S, _]] = Nil
+      filters: List[SqlFilter[S]] = Nil,
+      orders: List[SqlOrder[S]] = Nil
     ) {
 
       def where[R <: Rep[_] : CanBeQueryCondition](f: S => R) = {
-        val filter1 = SqlFilter(f)
+        val filter1 = new SqlFilter[S] {
+          override type ResultType = R
+          override val wt = implicitly[CanBeQueryCondition[ResultType]]
+          override val convert = f
+        }
         this.copy(filters = filter1 :: this.filters)
       }
 
-      def order_by[R](f: S => R)(implicit wt: R => Ordered) = {
-        val order1 = SqlOrder(f)(wt)
+      def order_by[R](f: S => R)(implicit wtImplicit: R => Ordered) = {
+        val order1 = new SqlOrder[S] {
+          override type ResultType = R
+          override val wt = wtImplicit
+          override val convert = f
+        }
         this.copy(orders = order1 :: this.orders)
       }
 
@@ -175,10 +201,10 @@ with OneInstancePerTest {
     object aabb {
       def aabb(query: Query[PermissionTable, Permission, Seq]) = {
         val filterQuery = bb.filters.foldLeft(query)((fQuery, eachFilter) => {
-          eachFilter.myFilter(fQuery)
+          fQuery.filter(eachFilter.convert)(eachFilter.wt)
         })
         val sortQuery = bb.orders.foldLeft(filterQuery)((fQuery, eachOrder) => {
-          eachOrder.myOrder(fQuery)
+          fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
         })
         sortQuery.map(table1 => bb.select.f(table1))(bb.select.shape)
       }
@@ -186,33 +212,39 @@ with OneInstancePerTest {
 
     val query = aabb.aabb(permissionTq1).result
 
-    db.run(query).map(println)
+    db.run(query).map(println).futureValue(oneSecondTimeOut)
 
     def cc = {
       select(
         (table1: (PermissionTable, CatTable)) => {
-          (table1._1.name, table1._1.typeName)
+          (table1._1.name, table1._1.typeName, table1._2.id)
         }
       )
       .where { case (table1, table2) => table1.describe === "cc" && table2.wang === table1.typeName }
       .order_by { case (table1, table2) => table2.wang }
     }
 
-    /*object ccdd {
-      def aabb(query2: Query[PermissionTable, Permission, Seq], query3: Query[CatTable, Cat, Seq]) = {
-        val filterQuery = bb.filters.foldLeft(query2 -> query3) { (eachTuplQuery, eachFilter) => {
-          eachFilter.myFilter(fQuery)
+    object ccdd {
+      def aabb(permissionTq: Query[PermissionTable, Permission, Seq], catTq: Query[CatTable, Cat, Seq]) = {
+        val tupleQuery = for {
+          permission <- permissionTq
+          cat <- catTq
+        } yield
+          permission -> cat
+
+        val filterQuery = cc.filters.foldLeft(tupleQuery) { (eachTQuery, eachFilter) => {
+          eachTQuery.filter(eachFilter.convert)(eachFilter.wt)
         } }
-        val sortQuery = bb.orders.foldLeft(filterQuery)((fQuery, eachOrder) => {
-          eachOrder.myOrder(fQuery)
-        })
-        sortQuery.map(table1 => bb.select.f(table1))(bb.select.shape)
+        val sortQuery = cc.orders.foldLeft(filterQuery) { (eachTQuery, eachOrder) => {
+          eachTQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
+        } }
+        sortQuery.map(table1 => cc.select.f(table1))(cc.select.shape)
       }
     }
 
-    val query1 = aabb.aabb(permissionTq1).result
+    val query1 = ccdd.aabb(permissionTq1, catTq1).result
 
-    db.run(query1).map(println)*/
+    db.run(query1).map(s => println("输出：" + s)).futureValue(oneSecondTimeOut)
 
   }
 
