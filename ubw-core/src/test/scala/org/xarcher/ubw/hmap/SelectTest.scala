@@ -5,27 +5,47 @@ import org.scalatest._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent._
 import org.scalatest.time.{Millis, Span}
+import slick.ast._
+import slick.jdbc.JdbcType
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.higherKinds
+import scala.language.implicitConversions
 import slick.driver.H2Driver.api._
 import slick.lifted.{AbstractTable, Ordered, CanBeQueryCondition}
+
+import scala.reflect.ClassTag
 
 /**
   * Created by djx314 on 15-6-22.
   */
 
+trait SlickData {
+
+  type DataType
+  val data: DataType
+
+  override def toString = s"SlickData($data)"
+
+}
+
+case class SlickDataGen[T](override val data: T) extends SlickData {
+
+  override type DataType = T
+
+}
+
 case class Permission(
   id: Option[Long] = None,
   name: String,
-  typeName: String = "",
+  typeName: Option[String] = Some("2333"),
   describe: String = ""
 )
 
 class PermissionTable(tag: slick.driver.H2Driver.api.Tag) extends Table[Permission](tag, "S_PERMISSION_TYPE") {
   def id = column[Long]("ID", O.PrimaryKey, O.AutoInc)
   def name = column[String]("NAME")
-  def typeName = column[String]("TYPE_NAME")
+  def typeName = column[Option[String]]("TYPE_NAME")
   def describe = column[String]("DESCRIBE")
 
   def * = (id.?, name, typeName, describe) <> (Permission.tupled, Permission.unapply _)
@@ -51,6 +71,41 @@ with Matchers
 with BeforeAndAfter
 with OneInstancePerTest {
 
+  implicit def slickDataColumnType[T : BaseColumnType]: BaseColumnType[SlickDataGen[T]] =
+    MappedColumnType.base[SlickDataGen[T], T](
+      dt => dt.data,
+      ts => SlickDataGen(ts)
+    )
+
+  implicit def slickDataColumnOptionType[T](implicit typedType: JdbcType[Option[T]]): BaseColumnType[SlickDataGen[Option[T]]] = {
+    import slick.driver.H2Driver._
+
+    class MappedColumnType11[S, U](toBase: S => U, toMapped: U => S)(implicit override val classTag: ClassTag[S], val jdbcType: JdbcType[U]) extends MappedJdbcType[S, U] with BaseTypedType[S]/*ScalaType[T] with BaseTypedType[T]*/{
+      def nullable: Boolean = jdbcType.scalaType.nullable
+      def ordered: Boolean = jdbcType.scalaType.ordered
+      def scalaOrderingFor(ord: Ordering): scala.math.Ordering[S] = new scala.math.Ordering[S] {
+        val uOrdering = jdbcType.scalaType.scalaOrderingFor(ord)
+        def compare(x: S, y: S): Int = uOrdering.compare(toBase(x), toBase(y))
+      }
+      def comap(u: U): S = toMapped(u)
+      def map(t: S): U = toBase(t)
+    }
+
+    new MappedColumnType11[SlickDataGen[Option[T]], Option[T]](dt => dt.data, ts => SlickDataGen(ts)) {
+      //override val structural = baseType.structural
+    }
+    /*trait OptionTypedType[T] extends TypedType[Option[T]] with OptionType {
+      val elementType: TypedType[T]
+    }*/
+  }
+
+  implicit class columnTypeToSlickDataColumnType[T](baseRep: Rep[T])(implicit typedType: TypedType[SlickDataGen[T]]) {
+    def miaolegemi = {
+      val convert = SimpleFunction.unary[T, SlickDataGen[T]]("")
+      convert(baseRep)
+    }
+  }
+
   lazy val db = {
     val datasource = new JdbcDataSource()
     datasource.setUrl(s"jdbc:h2:mem:summerTest;DB_CLOSE_DELAY=-1")
@@ -65,7 +120,7 @@ with OneInstancePerTest {
   before {
     val aa = permissionTq1 += Permission(
       name = "aa",
-      typeName = "bb",
+      typeName = Option("bb"),
       describe = "cc"
     )
     val aabb = catTq1 += Cat(
@@ -182,10 +237,6 @@ with OneInstancePerTest {
 
     }
 
-    /*def bb(table1: PermissionTable) = {
-      select { (table1.name, table1.typeName) } where { table1.describe === "cc" } order_by table1.typeName
-    }*/
-
     def bb = {
       select(
         (table1: PermissionTable) => {
@@ -195,8 +246,6 @@ with OneInstancePerTest {
       .where (table1 => table1.describe === "cc")
       .order_by (table1 => table1.name)
     }
-
-    case class Nmlgb()
 
     object aabb {
       def aabb(query: Query[PermissionTable, Permission, Seq]) = {
@@ -215,9 +264,14 @@ with OneInstancePerTest {
     db.run(query).map(println).futureValue(oneSecondTimeOut)
 
     def cc = {
+      //val aa = implicitly[BaseTypedType[SlickDataGen[Option[String]]]]
+      //val bb = slickDataColumnOptionType[String]
       select(
         (table1: (PermissionTable, CatTable)) => {
-          (table1._1.name, table1._1.typeName, table1._2.id)
+          (table1._1.name.miaolegemi, {
+            println(table1._1.typeName.getClass)
+            table1._1.typeName
+          }, table1._2.id.miaolegemi)
         }
       )
       .where { case (table1, table2) => table1.describe === "cc" }
