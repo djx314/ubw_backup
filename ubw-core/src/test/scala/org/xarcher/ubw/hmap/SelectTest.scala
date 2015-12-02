@@ -220,7 +220,8 @@ with OneInstancePerTest {
           (table1._1.name, table1._1.typeName, table1._2.id)
         }
       )
-      .where { case (table1, table2) => table1.describe === "cc" && table2.wang === table1.typeName }
+      .where { case (table1, table2) => table1.describe === "cc" }
+      .where { case (table1, table2) => table2.wang === table1.typeName }
       .order_by { case (table1, table2) => table2.wang }
     }
 
