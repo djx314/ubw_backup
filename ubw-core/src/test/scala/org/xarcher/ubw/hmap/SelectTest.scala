@@ -1,5 +1,7 @@
 package org.xarcher.ubw.slick
 
+import java.sql.ResultSet
+
 import org.h2.jdbcx.JdbcDataSource
 import org.scalatest._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
@@ -77,11 +79,40 @@ with OneInstancePerTest {
       ts => SlickDataGen(ts)
     )
 
-  implicit def slickDataColumnOptionType[T](implicit typedType: JdbcType[Option[T]]): BaseColumnType[SlickDataGen[Option[T]]] = {
+  import slick.driver.H2Driver._
+
+  implicit def ggdgjhigherugihuriehg[T](implicit jdbcType: ColumnType[T]): ColumnType[SlickDataGen[Option[T]]] = {
+    class AA/*(implicit override val classTag: ClassTag[SlickDataGen[Option[T]]])*/extends MappedJdbcType[SlickDataGen[Option[T]], T]()(jdbcType, ClassTag[SlickDataGen[Option[T]]](classOf[SlickDataGen[Option[T]]]))/*TypedType[SlickDataGen[Option[T]]] with ScalaType[SlickDataGen[Option[T]]] with AtomicType*/{
+      /*def nullable: Boolean = true//jdbcType.scalaType.nullable
+      def ordered: Boolean = jdbcType.optionType.scalaType.ordered
+      def scalaOrderingFor(ord: Ordering): scala.math.Ordering[SlickDataGen[Option[T]]] = new scala.math.Ordering[SlickDataGen[Option[T]]] {
+        val uOrdering = jdbcType.optionType.scalaType.scalaOrderingFor(ord)//baseType.scalaType.scalaOrderingFor(ord)
+        def compare(x: SlickDataGen[Option[T]], y: SlickDataGen[Option[T]]): Int = uOrdering.compare(x.data, y.data)
+      }*/
+      println("22" * 100)
+      override def map(t: SlickDataGen[Option[T]]): T = t.data match {
+        case Some(s) => s
+        case None => ???
+      }
+      override def comap(u: T): SlickDataGen[Option[T]] = {
+        SlickDataGen(Option(u))
+      }
+      override def wasNull(r: ResultSet, idx: Int) = {
+        println("11" * 100)
+        println(r)
+        println(r.wasNull())
+        r.wasNull()
+        false
+      }
+    }
+    new AA()
+  }
+
+  /*implicit def slickDataColumnOptionType[T](implicit typedType: JdbcType[T]): BaseColumnType[SlickDataGen[Option[T]]] = {
     import slick.driver.H2Driver._
 
-    class MappedColumnType11[S, U](toBase: S => U, toMapped: U => S)(implicit override val classTag: ClassTag[S], val jdbcType: JdbcType[U]) extends MappedJdbcType[S, U] with BaseTypedType[S]/*ScalaType[T] with BaseTypedType[T]*/{
-      def nullable: Boolean = jdbcType.scalaType.nullable
+    class MappedColumnType11(toBase:  => U, toMapped: U => S)(implicit override val classTag: ClassTag[S], val jdbcType: JdbcType[U]) extends TypedType[S] with ScalaType[S] with AtomicType/*ScalaType[T] with BaseTypedType[T]*/{
+      def nullable: Boolean = true//jdbcType.scalaType.nullable
       def ordered: Boolean = jdbcType.scalaType.ordered
       def scalaOrderingFor(ord: Ordering): scala.math.Ordering[S] = new scala.math.Ordering[S] {
         val uOrdering = jdbcType.scalaType.scalaOrderingFor(ord)
@@ -91,13 +122,9 @@ with OneInstancePerTest {
       def map(t: S): U = toBase(t)
     }
 
-    new MappedColumnType11[SlickDataGen[Option[T]], Option[T]](dt => dt.data, ts => SlickDataGen(ts)) {
-      //override val structural = baseType.structural
-    }
-    /*trait OptionTypedType[T] extends TypedType[Option[T]] with OptionType {
-      val elementType: TypedType[T]
-    }*/
-  }
+    //new MappedColumnType11[SlickDataGen[Option[T]], T](dt => throw new SlickException("SlickDataGen 这个类只提供读的功能，写的功能暂不提供")/*dt.data.get*/, ts => SlickDataGen(Option(ts)))
+    ???
+  }*/
 
   implicit class columnTypeToSlickDataColumnType[T](baseRep: Rep[T])(implicit typedType: TypedType[SlickDataGen[T]]) {
     def miaolegemi = {
@@ -119,8 +146,8 @@ with OneInstancePerTest {
 
   before {
     val aa = permissionTq1 += Permission(
-      name = "aa",
-      typeName = Option("bb"),
+      name = "bb",
+      typeName = None,//Option("bb"),
       describe = "cc"
     )
     val aabb = catTq1 += Cat(
@@ -228,7 +255,7 @@ with OneInstancePerTest {
 
     object select {
 
-      def apply[S, T, U](columns: S => T)(implicit shape: Shape[_ <: FlatShapeLevel, T, U, T]) = {
+      def apply[S, T, U](columns: S => T)(implicit shape: Shape[_ <: slick.lifted.FlatShapeLevel, T, U, T]) = {
         val select1 = SqlSelect(columns)
         SqlWrapper(
           select = select1
@@ -264,18 +291,18 @@ with OneInstancePerTest {
     db.run(query).map(println).futureValue(oneSecondTimeOut)
 
     def cc = {
-      //val aa = implicitly[BaseTypedType[SlickDataGen[Option[String]]]]
-      //val bb = slickDataColumnOptionType[String]
+      val aa = implicitly[ColumnType[SlickDataGen[Option[String]]]]
+      val bb = ggdgjhigherugihuriehg[String]
       select(
         (table1: (PermissionTable, CatTable)) => {
           (table1._1.name.miaolegemi, {
-            println(table1._1.typeName.getClass)
-            table1._1.typeName
+            //println(table1._1.typeName.getClass)
+            table1._1.typeName.miaolegemi
           }, table1._2.id.miaolegemi)
         }
       )
       .where { case (table1, table2) => table1.describe === "cc" }
-      .where { case (table1, table2) => table2.wang === table1.typeName }
+      .where { case (table1, table2) => table2.wang === table1.name }
       .order_by { case (table1, table2) => table2.wang }
     }
 
@@ -299,7 +326,11 @@ with OneInstancePerTest {
 
     val query1 = ccdd.aabb(permissionTq1, catTq1).result
 
-    db.run(query1).map(s => println("输出：" + s)).futureValue(oneSecondTimeOut)
+    try {
+      db.run(query1).map(s => println("输出：" + s)).futureValue(oneSecondTimeOut)
+    } catch {
+      case e: Exception => e.printStackTrace
+    }
 
   }
 
