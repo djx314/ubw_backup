@@ -86,8 +86,8 @@ with OneInstancePerTest {
 
   import slick.driver.H2Driver._
 
-  implicit def ggdgjhigherugihuriehg[T](implicit jdbcType: ColumnType[T], defaultValue: RepDefaultValue[T]): ColumnType[SlickDataGen[Option[T]]] = {
-    class AA extends MappedJdbcType[SlickDataGen[Option[T]], T]()(jdbcType, ClassTag[SlickDataGen[Option[T]]](classOf[SlickDataGen[Option[T]]])) {
+  implicit def ggdgjhigherugihuriehg[T](implicit jdbcType: ColumnType[T], classTag: ClassTag[SlickDataGen[Option[T]]], defaultValue: RepDefaultValue[T]): ColumnType[SlickDataGen[Option[T]]] = {
+    class AA extends MappedJdbcType[SlickDataGen[Option[T]], T]() {
       override def map(t: SlickDataGen[Option[T]]): T = t.data match {
         case Some(s) => s
         case None => null.asInstanceOf[T]
