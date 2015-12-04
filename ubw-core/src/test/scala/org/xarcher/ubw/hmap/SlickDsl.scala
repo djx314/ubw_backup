@@ -177,19 +177,32 @@ with OneInstancePerTest {
 
     }
 
-    case class SqlSelect[S, R, T, G](f: S => R)(implicit val shape: Shape[_ <: FlatShapeLevel, R, T, G])
+    trait SqlRep[S] {
+      type R
+      type T
+      type G
+      val proName: String
+      val f: S => R
+      val shape: Shape[_ <: FlatShapeLevel, R, T, G]
+    }
 
-    implicit class miaolegemiRepExtensionMethod[S, R, T, G](repLike: S => R) {
+    implicit class miaolegemiRepExtensionMethod[S1, R1](repLike: S1 => R1) {
 
-      def as(columnName: String) = {
-        permissionTq1.map(s => s)
+      def as[T1, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1]) = {
+        new SqlRep[S1] {
+          type R = R1
+          type T = T1
+          type G = G1
+          val proName = columnName
+          val f = repLike
+          val shape = shape1
+        }
       }
 
     }
-    /*case class SqlData[S, T, R, G](f: S => R)(implicit val shape: Shape[_ <: FlatShapeLevel, R, T, G])*/
 
-    case class SqlWrapper[S, T, U, G](
-      select: SqlSelect[S, T, U, G],
+    case class SqlWrapper[S](
+      select: List[SqlRep[S]],
       filters: List[SqlFilter[S]] = Nil,
       orders: List[SqlOrder[S]] = Nil
     ) {
@@ -216,10 +229,9 @@ with OneInstancePerTest {
 
     object select {
 
-      def apply[S, T, U](columns: S => T)(implicit shape: Shape[_ <: slick.lifted.FlatShapeLevel, T, U, T]) = {
-        val select1 = SqlSelect(columns)
+      def apply[S, T, U](columns: SqlRep[S]*) = {
         SqlWrapper(
-          select = select1
+          select = columns.toList
         )
       }
 
