@@ -68,7 +68,8 @@ class CatTable(tag: slick.driver.H2Driver.api.Tag) extends Table[Cat](tag, "S_CA
 
   def * = (id.?, miao, wang) <> (Cat.tupled, Cat.unapply _)
 }
-/*class SelectTest extends FlatSpec
+
+class SelectTest extends FlatSpec
 with ScalaFutures
 with Matchers
 with BeforeAndAfter
@@ -81,7 +82,7 @@ with OneInstancePerTest {
   implicit def slickDataColumnType[T : BaseColumnType]: BaseColumnType[SlickDataGen[T]] =
     MappedColumnType.base[SlickDataGen[T], T](
       dt => dt.data,
-      ts => SlickDataGen(ts)
+      ts => SlickDataGen("123", ts)
     )
 
   import slick.driver.H2Driver._
@@ -94,9 +95,9 @@ with OneInstancePerTest {
       }
       override def comap(u: T): SlickDataGen[Option[T]] = {
         if (u == defaultValue.value)
-          SlickDataGen(None)
+          SlickDataGen("123", None)
         else
-          SlickDataGen(Option(u))
+          SlickDataGen("123", Option(u))
       }
       override def getValue(r: ResultSet, idx: Int) = {
         val v = tmd.getValue(r, idx)
@@ -156,24 +157,6 @@ with OneInstancePerTest {
     db.run((permissionTq1.schema ++ catTq1.schema).drop).futureValue(oneSecondTimeOut)
   }
 
-  "Small table" should "update some colunms" in {
-
-    class Mlgb {
-      val permissionTq = permissionTq1
-    }
-
-    val mlgb = new Mlgb()
-
-    import mlgb._
-
-    val query = permissionTq.filter(_.name === "aa")
-
-    println(db.run(query.result).futureValue(oneSecondTimeOut))
-
-    SelectMacro.decodePrintln('喵了个咪)
-
-  }
-
   "aa" should "bb" in {
 
     trait SqlFilter[S] {
@@ -194,7 +177,16 @@ with OneInstancePerTest {
 
     }
 
-    case class SqlSelect[S, T, R, G](f: S => R)(implicit val shape: Shape[_ <: FlatShapeLevel, R, T, G])
+    case class SqlSelect[S, R, T, G](f: S => R)(implicit val shape: Shape[_ <: FlatShapeLevel, R, T, G])
+
+    implicit class miaolegemiRepExtensionMethod[S, R, T, G](repLike: S => R) {
+
+      def as(columnName: String) = {
+        permissionTq1.map(s => s)
+      }
+
+    }
+    /*case class SqlData[S, T, R, G](f: S => R)(implicit val shape: Shape[_ <: FlatShapeLevel, R, T, G])*/
 
     case class SqlWrapper[S, T, U, G](
       select: SqlSelect[S, T, U, G],
@@ -233,7 +225,7 @@ with OneInstancePerTest {
 
     }
 
-    def bb = {
+    /*def bb = {
       select(
         (table1: PermissionTable) => {
           (table1.typeName, table1.name)
@@ -290,13 +282,9 @@ with OneInstancePerTest {
 
     val query1 = ccdd.aabb(permissionTq1, catTq1).result
 
-    try {
-      db.run(query1).map(s => println("输出：" + s.head)).futureValue(oneSecondTimeOut)
-      db.run(permissionTq1.map(_.typeName.miaolegemi).result).map(s => println("输出1111：" + s.head)).futureValue(oneSecondTimeOut)
-    } catch {
-      case e: Exception => e.printStackTrace
-    }
+    db.run(query1).map(s => println("输出：" + s.head)).futureValue(oneSecondTimeOut)
+    db.run(permissionTq1.map(_.typeName.miaolegemi).result).map(s => println("输出1111：" + s.head)).futureValue(oneSecondTimeOut)*/
 
   }
 
-}*/
+}

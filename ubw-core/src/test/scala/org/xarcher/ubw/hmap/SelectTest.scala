@@ -122,7 +122,7 @@ with OneInstancePerTest {
 
   lazy val db = {
     val datasource = new JdbcDataSource()
-    datasource.setUrl(s"jdbc:h2:mem:summerTest;DB_CLOSE_DELAY=-1")
+    datasource.setUrl(s"jdbc:h2:mem:mlgmTest;DB_CLOSE_DELAY=-1")
     Database.forDataSource(datasource)
   }
 
@@ -290,12 +290,8 @@ with OneInstancePerTest {
 
     val query1 = ccdd.aabb(permissionTq1, catTq1).result
 
-    try {
-      db.run(query1).map(s => println("输出：" + s.head)).futureValue(oneSecondTimeOut)
-      db.run(permissionTq1.map(_.typeName.miaolegemi).result).map(s => println("输出1111：" + s.head)).futureValue(oneSecondTimeOut)
-    } catch {
-      case e: Exception => e.printStackTrace
-    }
+    db.run(query1).map(s => println("输出：" + s.head)).futureValue(oneSecondTimeOut)
+    db.run(permissionTq1.map(_.typeName.miaolegemi).result).map(s => println("输出1111：" + s.head)).futureValue(oneSecondTimeOut)
 
   }
 
