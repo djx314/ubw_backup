@@ -68,7 +68,7 @@ class CatTable(tag: slick.driver.H2Driver.api.Tag) extends Table[Cat](tag, "S_CA
   def * = (id.?, miao, wang) <> (Cat.tupled, Cat.unapply _)
 }
 
-class SelectTest extends FlatSpec
+/*class SelectTest extends FlatSpec
 with ScalaFutures
 with Matchers
 with BeforeAndAfter
@@ -295,4 +295,4 @@ with OneInstancePerTest {
 
   }
 
-}
+}*/
