@@ -7,6 +7,7 @@ import org.scalatest._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent._
 import org.scalatest.time.{Millis, Span}
+import org.xarcher.ubw.slick.SelectMacro
 import slick.ast.TypedType
 import slick.lifted.{TupleShape, CanBeQueryCondition, Ordered}
 
@@ -415,6 +416,13 @@ with OneInstancePerTest {
     val query1 = ccdd.aabb(permissionTq1, catTq1)
 
     db.run(query1).map(s => println(s.toList.map(t => t.list()))).futureValue(oneSecondTimeOut)
+
+    val bbbb: String = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+
+    val hh = SelectMacro.decodePrintln {
+      println(bbbb)
+    }
+    println(hh + 2333)
 
   }
 

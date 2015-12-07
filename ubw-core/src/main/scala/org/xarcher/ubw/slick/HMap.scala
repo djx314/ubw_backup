@@ -8,7 +8,7 @@ import scala.language.experimental.macros
   */
 object SelectMacro {
 
-  def decodePrintln(obj: Symbol): Any = macro SelectMacroImpl.impl
+  def decodePrintln(obj: Any): Any = macro SelectMacroImpl.impl
 
 }
 
@@ -16,17 +16,43 @@ class SelectMacroImpl(override val c: Context) extends MacroUtils {
 
   import c.universe._
 
-  def impl(obj: c.Expr[Any]): c.Expr[Any] = obj match {
+  def impl(obj: c.Expr[Any]): c.Expr[Any] = obj.tree match {
     case classDecl: ClassDef => {
       c.abort(c.enclosingPosition, "喵了个咪，不要 class 定义")
     }
-    case Expr(s) =>
-      val q"""scala.Symbol.apply(${Literal(Constant(kk: String))})""" = s
-      println(kk + "打印出来的")
-      c.Expr(q"""{ println(${s}); 2; }""")
-    case decl => {
+    case s =>
+      val kk = TermName("bbbb").decodedName.toTermName
+      //val q"""scala.this.Predef.println($bbbbName)""" = s
+      println(s)
+      val q"""val ${abcd}: String = "bbbbbbbb"""" = q"""val bbbb: String = "bbbbbbbb""""
+      val q"""scala.Predef.println(${efgh})""" = q"""scala.Predef.println(bbbb)"""
+      //println(bbbbName.getClass.toString)
+      println(abcd)
+      println(abcd.getClass.toString)
+      println(kk.getClass.toString)
+      println(abcd == kk)
+      println(efgh)
+      println(efgh.getClass.toString)
+
+      val aa =
+        q"""
+          {
+            {
+              val kkkk: String = "2333" * 100;
+              val ${abcd}: String = "5678" * 100;
+              {
+                println(${efgh})
+                ..${s}
+              }
+            }
+            666
+          }
+         """
+      println(aa)
+      c.Expr(aa)
+    /*case decl => {
       c.abort(c.enclosingPosition, "Underlying class must not be top-level and without companion")
-    }
+    }*/
   }
 
   /*def getAnnotations(tree: Tree) = {
