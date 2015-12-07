@@ -417,10 +417,11 @@ with OneInstancePerTest {
 
     db.run(query1).map(s => println(s.toList.map(t => t.list()))).futureValue(oneSecondTimeOut)
 
-    val bbbb: String = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    def bbbb = ???
 
     val hh = SelectMacro.decodePrintln {
       println(bbbb)
+      bbbb
     }
     println(hh + 2333)
 
