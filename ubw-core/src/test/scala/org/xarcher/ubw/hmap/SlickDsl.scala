@@ -210,7 +210,7 @@ with OneInstancePerTest {
       orders: List[SqlOrder[S]] = Nil
     ) {
 
-      def where[R <: Rep[_] : CanBeQueryCondition](f: S => R) = {
+      def where[R <: Rep[_] : CanBeQueryCondition](f: S => R): SqlWrapper[S] = {
         val filter1 = new SqlFilter[S] {
           override type ResultType = R
           override val wt = implicitly[CanBeQueryCondition[ResultType]]
@@ -221,7 +221,7 @@ with OneInstancePerTest {
 
       def mlgb[R <: Rep[_] : CanBeQueryCondition](f: R): SqlWrapper[S] = ???
 
-      def order_by[R](f: S => R)(implicit wtImplicit: R => Ordered) = {
+      def order_by[R](f: S => R)(implicit wtImplicit: R => Ordered): SqlWrapper[S] = {
         val order1 = new SqlOrder[S] {
           override type ResultType = R
           override val wt = wtImplicit
@@ -230,7 +230,7 @@ with OneInstancePerTest {
         this.copy(orders = order1 :: this.orders)
       }
 
-      def mlgb_orderby[R](f: S => R)(implicit wtImplicit: R => Ordered) = ???
+      def mlgb_orderby[R](f: R)(implicit wtImplicit: R => Ordered): SqlWrapper[S] = ???
 
       val repGens = {
         select match {
@@ -431,7 +431,12 @@ with OneInstancePerTest {
 
     def dd = UbwMacro.body {
       (permission: PermissionTable, cat: CatTable) => {
-        select(List.empty[SqlRep[(PermissionTable, CatTable)]]: _*).mlgb(permission.describe like "%123%").mlgb(permission.describe like "%456%").mlgb(permission.describe like "%789%")
+        select[(PermissionTable, CatTable)](List.empty[SqlRep[(PermissionTable, CatTable)]]: _*)
+          //.mlgb(permission.describe like "%123%")
+          //.mlgb(permission.describe like "%456%")
+          .mlgb(cat.wang like "%789%")
+          //.mlgb_orderby(cat.wang)
+          .where { case (table1, table2) => table1.describe === "cc" }
       }
     }
     println(dd.toString * 100)

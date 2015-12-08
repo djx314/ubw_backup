@@ -23,28 +23,46 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
   def impl(obj: c.Expr[Any]): c.Expr[Any] = {
     val resultTree = obj match {
       case Expr(s) =>
-        val q"""(..${tablesProvide}) => {
-          $body
-        }""" = s
-        val transformerGen = new Transformer {
+        val q"""(..${tablesProvide}) => {$body}""" = s
+        val transformerGen = (oldName: String, newName: String) => new Transformer {
+          override def transform(tree: Tree): Tree = {
+            tree match {
+              case ValDef(mods, TermName(`oldName`), tTree, valueDef) => ValDef(mods, TermName(newName), tTree, valueDef)
+              case Ident(TermName(`oldName`)) => Ident(TermName(newName))
+              case Bind(TermName(`oldName`), typeBind) => Bind(TermName(newName), typeBind)
+              case other => super.transform(other)
+            }
+          }
+        }
+
+        val paramsq: List[(String, Tree)] = tablesProvide.map { case q"""$mods val ${ TermName(paramName) } : $paramType = ${_}""" => {
+          paramName -> paramType
+        } }
+        val functionTransformer = new Transformer {
           override def transform(tree: Tree): Tree = {
             tree match {
               case q"""${x1}.mlgb[${x2}](${x3})(${x4})""" =>
-                println(x1.toString + "\n" + x2.toString + "\n" + "2333" + "\n")
-                q"""${x1}.mlgb[${x2}](${x3})(${x4})"""
+
+                val qqqqqq11 = paramsq.map { case (vName, vType) => {
+                  Bind(TermName(vName), Typed(Ident(termNames.WILDCARD), vType))
+                } }
+                val bbbb = q"""{ case (..$qqqqqq11) => $x3 }"""
+                val nameConvert = paramsq.foldLeft(bbbb: Tree) { (baseFunction, paramInfo) => {
+                  val nameTranformer = transformerGen(paramInfo._1, c.freshName(paramInfo._1))
+                  nameTranformer.transform(baseFunction)
+                } }
+
+                val aa = q"""$x1.where { $nameConvert }"""
+                this.transform((aa))
               case other => {
-                //println(other + "2333")
                 super.transform(other)
               }
             }
           }
         }
-        //println(body)
-        //val q"""${_}.mlgb[${_}](${h})(${t})""" = body
-        //println(h)
-        //println(t)
-        (transformerGen.transform(body))
-        q"""2333"""
+        val aa = functionTransformer.transform(c.untypecheck(body))
+        q"""22"""
+        aa
       case _ => c.abort(c.enclosingPosition, "请输入一个代码块")
     }
     c.Expr(resultTree)
