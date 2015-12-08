@@ -69,11 +69,8 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                 val newColumns = (for {
                   column <- columns
                 } yield {
-                  println(column)
-                  val q"""miaolegemiRepExtensionMethod1111[slick.lifted.Rep[Option[String]]]($hahahaha).hhhh[Option[String], slick.lifted.Rep[Option[String]]]($columnName)(lifted.this.Shape.optionShape[String, String, String, Nothing](lifted.this.Shape.repColumnShape[String, Nothing](slick.driver.H2Driver.api.stringColumnType)))""" = q"""miaolegemiRepExtensionMethod1111[slick.lifted.Rep[Option[String]]](permission.typeName).hhhh[Option[String], slick.lifted.Rep[Option[String]]]("喵了个咪")(lifted.this.Shape.optionShape[String, String, String, Nothing](lifted.this.Shape.repColumnShape[String, Nothing](slick.driver.H2Driver.api.stringColumnType)))
-"""
-                  //val q"""miaolegemiRepExtensionMethod1111[${_}](${hahahaha}).hhhh[${_}](${columnName})(${_})""" = column
-                  //val nameConvert = convert(hahahaha)
+                  println(column + "11" * 100)
+                  val q"""miaolegemiRepExtensionMethod1111[..${_}](..${ hahahaha :: Nil }).hhhh[..${_}](..${ columnName :: Nil })(..${_})""" = column
                   val valToMatch = (body: Tree) => {
                     val name = TermName(c.freshName)
                     val types = tq"""(..${paramsq.map(_._2)})"""
@@ -87,7 +84,6 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                     val nameTranformer = transformerGen(paramName, c.freshName(paramName))
                     nameTranformer.transform(baseFunction)
                   } }
-                  //println(q"""$nameConvert.as($columnName)""")
                   q"""${nameConvert}.as($columnName)"""
                 })
                 q"""select(..$newColumns)"""
@@ -99,8 +95,21 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
           }
         }
         val aa = functionTransformer.transform(c.untypecheck(body))
-        println(aa)
-        aa
+        val bbb = {
+          val vName = TermName(c.freshName)
+          val forName = TermName(c.freshName)
+          val valTypeMap = paramsq.map { case (key, resultType) => TermName(c.freshName) -> resultType}
+          val forQuery = valTypeMap.map { case (valName, resultType) => fq"""$valName <- TableQuery[$resultType]""" }
+          q"""
+            {
+              val $vName = { $aa }
+              val $forName = for(..$forQuery) yield {(..${valTypeMap.map(_._1)})}
+              $vName.queryResult($forName)
+            }
+           """
+        }
+        println(bbb)
+        bbb
       case _ => c.abort(c.enclosingPosition, "请输入一个代码块")
     }
     c.Expr(resultTree)

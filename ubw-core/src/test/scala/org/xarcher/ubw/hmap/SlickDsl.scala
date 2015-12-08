@@ -437,7 +437,7 @@ with OneInstancePerTest {
 
     def dd = UbwMacro.body {
       (permission: PermissionTable, cat: CatTable) => {
-        select(permission.typeName hhhh "喵了个咪", permission.name hhhh "喵", cat.wang hhhh "十六夜的樱丘")
+        select(permission hhhh "喵了个咪", permission.name hhhh "喵", cat.wang hhhh "十六夜的樱丘", cat hhhh "卖了个萌")
           .mlgb(permission.describe like "%%")
           .mlgb(permission.describe like "%%")
           .mlgb(cat.wang like "%%")
@@ -447,13 +447,7 @@ with OneInstancePerTest {
       }
     }
 
-    val aaaaQuery = for {
-      permission <- permissionTq1
-      cat <- catTq1
-    } yield permission -> cat
-
-    println("11" * 100)
-    db.run(dd.queryResult(aaaaQuery)).map(s => println(s.toList.map(t => t.list()))).futureValue(oneSecondTimeOut)
+    db.run(dd).map(s => println(s.toList.map(t => t.list()))).futureValue(oneSecondTimeOut)
 
 
   }
