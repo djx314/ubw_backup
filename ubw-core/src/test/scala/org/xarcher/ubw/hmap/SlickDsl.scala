@@ -7,7 +7,7 @@ import org.scalatest._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent._
 import org.scalatest.time.{Millis, Span}
-import org.xarcher.ubw.slick.SelectMacro
+import org.xarcher.ubw.slick.{UbwMacro, SelectMacro}
 import slick.ast.TypedType
 import slick.lifted.{TupleShape, CanBeQueryCondition, Ordered}
 
@@ -219,6 +219,8 @@ with OneInstancePerTest {
         this.copy(filters = filter1 :: this.filters)
       }
 
+      def mlgb[R <: Rep[_] : CanBeQueryCondition](f: R): SqlWrapper[S] = ???
+
       def order_by[R](f: S => R)(implicit wtImplicit: R => Ordered) = {
         val order1 = new SqlOrder[S] {
           override type ResultType = R
@@ -227,6 +229,8 @@ with OneInstancePerTest {
         }
         this.copy(orders = order1 :: this.orders)
       }
+
+      def mlgb_orderby[R](f: S => R)(implicit wtImplicit: R => Ordered) = ???
 
       val repGens = {
         select match {
@@ -259,7 +263,7 @@ with OneInstancePerTest {
 
     object select {
 
-      def apply[S, T, U](columns: SqlRep[S]*) = {
+      def apply[S](columns: SqlRep[S]*) = {
         SqlWrapper(
           select = columns.toList
         )
@@ -424,6 +428,13 @@ with OneInstancePerTest {
       bbbb
     }
     println(hh + 2333)
+
+    def dd = UbwMacro.body {
+      (permission: PermissionTable, cat: CatTable) => {
+        select(List.empty[SqlRep[(PermissionTable, CatTable)]]: _*).mlgb(permission.describe like "%123%").mlgb(permission.describe like "%456%").mlgb(permission.describe like "%789%")
+      }
+    }
+    println(dd.toString * 100)
 
   }
 
