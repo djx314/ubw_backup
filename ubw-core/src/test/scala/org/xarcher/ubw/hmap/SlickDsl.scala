@@ -204,6 +204,12 @@ with OneInstancePerTest {
 
     }
 
+    implicit class miaolegemiRepExtensionMethod1111[R1](repLike: R1) {
+
+      def hhhh[T1, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1]): SqlRep[Any] = ???
+
+    }
+
     case class SqlWrapper[S](
       select: List[SqlRep[S]],
       filters: List[SqlFilter[S]] = Nil,
@@ -232,7 +238,7 @@ with OneInstancePerTest {
 
       def mlgb_orderby[R](f: R)(implicit wtImplicit: R => Ordered): SqlWrapper[S] = ???
 
-      val repGens = {
+      lazy val repGens = {
         select match {
           case head :: tail =>
             tail.foldLeft(SelectRep.head(head))((repGen, eachSelect) => {
@@ -431,15 +437,24 @@ with OneInstancePerTest {
 
     def dd = UbwMacro.body {
       (permission: PermissionTable, cat: CatTable) => {
-        select[(PermissionTable, CatTable)](List.empty[SqlRep[(PermissionTable, CatTable)]]: _*)
-          //.mlgb(permission.describe like "%123%")
-          //.mlgb(permission.describe like "%456%")
-          .mlgb(cat.wang like "%789%")
-          //.mlgb_orderby(cat.wang)
-          .where { case (table1, table2) => table1.describe === "cc" }
+        select(permission.typeName hhhh "喵了个咪", permission.name hhhh "喵", cat.wang hhhh "十六夜的樱丘")
+          .mlgb(permission.describe like "%%")
+          .mlgb(permission.describe like "%%")
+          .mlgb(cat.wang like "%%")
+          .mlgb { cat.wang === permission.name }
+          .mlgb_orderby(cat.wang)
+          .mlgb_orderby(permission.describe)
       }
     }
-    println(dd.toString * 100)
+
+    val aaaaQuery = for {
+      permission <- permissionTq1
+      cat <- catTq1
+    } yield permission -> cat
+
+    println("11" * 100)
+    db.run(dd.queryResult(aaaaQuery)).map(s => println(s.toList.map(t => t.list()))).futureValue(oneSecondTimeOut)
+
 
   }
 

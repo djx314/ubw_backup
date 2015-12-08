@@ -38,22 +38,60 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
         val paramsq: List[(String, Tree)] = tablesProvide.map { case q"""$mods val ${ TermName(paramName) } : $paramType = ${_}""" => {
           paramName -> paramType
         } }
+
+        val qqqqqq11 = paramsq.map { case (vName, vType) => {
+          Bind(TermName(vName), Typed(Ident(termNames.WILDCARD), vType))
+        } }
+
+        val convert = (contentTree: Tree) => {
+          val bbbb = q"""{ case (..$qqqqqq11) => $contentTree }"""
+          val nameConvert = paramsq.foldLeft(bbbb: Tree) { case (baseFunction, (paramName, _)) => {
+            val nameTranformer = transformerGen(paramName, c.freshName(paramName))
+            nameTranformer.transform(baseFunction)
+          } }
+          nameConvert
+        }
+
         val functionTransformer = new Transformer {
           override def transform(tree: Tree): Tree = {
             tree match {
               case q"""${x1}.mlgb[${x2}](${x3})(${x4})""" =>
-
-                val qqqqqq11 = paramsq.map { case (vName, vType) => {
-                  Bind(TermName(vName), Typed(Ident(termNames.WILDCARD), vType))
-                } }
-                val bbbb = q"""{ case (..$qqqqqq11) => $x3 }"""
-                val nameConvert = paramsq.foldLeft(bbbb: Tree) { (baseFunction, paramInfo) => {
-                  val nameTranformer = transformerGen(paramInfo._1, c.freshName(paramInfo._1))
-                  nameTranformer.transform(baseFunction)
-                } }
-
+                val nameConvert = convert(x3)
                 val aa = q"""$x1.where { $nameConvert }"""
                 this.transform((aa))
+
+              case q"""${x1}.mlgb_orderby[${x2}](${x3})(${x4})""" =>
+                val nameConvert = convert(x3)
+                val aa = q"""$x1.order_by { $nameConvert }"""
+                this.transform((aa))
+
+              case q"""select.apply[${_}](..$columns)""" =>
+                val newColumns = (for {
+                  column <- columns
+                } yield {
+                  println(column)
+                  val q"""miaolegemiRepExtensionMethod1111[slick.lifted.Rep[Option[String]]]($hahahaha).hhhh[Option[String], slick.lifted.Rep[Option[String]]]($columnName)(lifted.this.Shape.optionShape[String, String, String, Nothing](lifted.this.Shape.repColumnShape[String, Nothing](slick.driver.H2Driver.api.stringColumnType)))""" = q"""miaolegemiRepExtensionMethod1111[slick.lifted.Rep[Option[String]]](permission.typeName).hhhh[Option[String], slick.lifted.Rep[Option[String]]]("喵了个咪")(lifted.this.Shape.optionShape[String, String, String, Nothing](lifted.this.Shape.repColumnShape[String, Nothing](slick.driver.H2Driver.api.stringColumnType)))
+"""
+                  //val q"""miaolegemiRepExtensionMethod1111[${_}](${hahahaha}).hhhh[${_}](${columnName})(${_})""" = column
+                  //val nameConvert = convert(hahahaha)
+                  val valToMatch = (body: Tree) => {
+                    val name = TermName(c.freshName)
+                    val types = tq"""(..${paramsq.map(_._2)})"""
+                    q"""
+                       ($name : $types) => $name match {
+                        case (..$qqqqqq11) => $body
+                       }
+                     """
+                  }
+                  val nameConvert = paramsq.foldLeft(valToMatch(hahahaha): Tree) { case (baseFunction, (paramName, _)) => {
+                    val nameTranformer = transformerGen(paramName, c.freshName(paramName))
+                    nameTranformer.transform(baseFunction)
+                  } }
+                  //println(q"""$nameConvert.as($columnName)""")
+                  q"""${nameConvert}.as($columnName)"""
+                })
+                q"""select(..$newColumns)"""
+
               case other => {
                 super.transform(other)
               }
@@ -61,7 +99,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
           }
         }
         val aa = functionTransformer.transform(c.untypecheck(body))
-        q"""22"""
+        println(aa)
         aa
       case _ => c.abort(c.enclosingPosition, "请输入一个代码块")
     }
