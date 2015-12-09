@@ -55,14 +55,14 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
         val functionTransformer = new Transformer {
           override def transform(tree: Tree): Tree = {
             tree match {
-              case q"""${x1}.mlgb[${x2}](${x3})(${x4})""" =>
+              case q"""${x1}.where[${x2}](${x3})(${x4})""" =>
                 val nameConvert = convert(x3)
-                val aa = q"""$x1.where { $nameConvert }"""
+                val aa = q"""$x1.where_ext { $nameConvert }"""
                 this.transform((aa))
 
-              case q"""${x1}.mlgb_orderby[${x2}](${x3})(${x4})""" =>
+              case q"""${x1}.order_by[${x2}](${x3})(${x4})""" =>
                 val nameConvert = convert(x3)
-                val aa = q"""$x1.order_by { $nameConvert }"""
+                val aa = q"""$x1.order_by_ext { $nameConvert }"""
                 this.transform((aa))
 
               case q"""select.apply[${_}](..$columns)""" =>
@@ -70,7 +70,8 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                   column <- columns
                 } yield {
                   println(column + "11" * 100)
-                  val q"""miaolegemiRepExtensionMethod1111[..${_}](..${ hahahaha :: Nil }).hhhh[..${_}](..${ columnName :: Nil })(..${_})""" = column
+                  val q"""${_}[..${_}](..${ hahahaha :: Nil }).as[..${_}](..${ columnName :: Nil })(..${_})""" = column
+                  //val q"""miaolegemiRepExtensionMethod1111[..${_}](..${ hahahaha :: Nil }).hhhh[..${_}](..${ columnName :: Nil })(..${_})""" = column
                   val valToMatch = (body: Tree) => {
                     val name = TermName(c.freshName)
                     val types = tq"""(..${paramsq.map(_._2)})"""
@@ -84,7 +85,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                     val nameTranformer = transformerGen(paramName, c.freshName(paramName))
                     nameTranformer.transform(baseFunction)
                   } }
-                  q"""${nameConvert}.as($columnName)"""
+                  q"""${nameConvert}.as_ext($columnName)"""
                 })
                 q"""select(..$newColumns)"""
 
@@ -144,11 +145,7 @@ class SelectMacroImpl(override val c: Context) extends MacroUtils {
             ${ s }
           }
          """
-      //println(aa)
       c.Expr(transformerGen("bbbb", newFreshName).transform(c.untypecheck(aa)))
-    /*case decl => {
-      c.abort(c.enclosingPosition, "Underlying class must not be top-level and without companion")
-    }*/
   }
 
 }

@@ -173,129 +173,129 @@ with OneInstancePerTest {
 
     trait SqlOrder[S] {
 
-      type ResultType
-      type TableType = S
-      val wt: ResultType => Ordered
-      val convert: TableType => ResultType
+            type ResultType
+            type TableType = S
+            val wt: ResultType => Ordered
+            val convert: TableType => ResultType
 
-    }
+          }
 
-    trait SqlRep[S] {
-      type R
-      type T
-      type G
-      val proName: String
-      val f: S => R
-      val shape: Shape[_ <: FlatShapeLevel, R, T, G]
-    }
+          trait SqlRep[S] {
+            type R
+            type T
+            type G
+            val proName: String
+            val f: S => R
+            val shape: Shape[_ <: FlatShapeLevel, R, T, G]
+          }
 
-    implicit class miaolegemiRepExtensionMethod[S1, R1](repLike: S1 => R1) {
+          implicit class miaolegemiRepExtensionMethod[S1, R1](repLike: S1 => R1) {
 
-      def as[T1, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1]) = {
-        new SqlRep[S1] {
-          type R = R1
-          type T = T1
-          type G = G1
-          val proName = columnName
-          val f = repLike
-          val shape = shape1
-        }
-      }
+            def as_ext[T1, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1]) = {
+              new SqlRep[S1] {
+                type R = R1
+                type T = T1
+                type G = G1
+                val proName = columnName
+                val f = repLike
+                val shape = shape1
+              }
+            }
 
-    }
+          }
 
-    implicit class miaolegemiRepExtensionMethod1111[R1](repLike: R1) {
+          implicit class miaolegemiRepExtensionMethod1111[R1](repLike: R1) {
 
-      def hhhh[T1, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1]): SqlRep[Any] = ???
+            def as[T1, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1]): SqlRep[Any] = ???
 
-    }
+          }
 
-    case class SqlWrapper[S](
-      select: List[SqlRep[S]],
-      filters: List[SqlFilter[S]] = Nil,
-      orders: List[SqlOrder[S]] = Nil
-    ) {
+          case class SqlWrapper[S](
+                                    select: List[SqlRep[S]],
+                                    filters: List[SqlFilter[S]] = Nil,
+                                    orders: List[SqlOrder[S]] = Nil
+                                  ) {
 
-      def where[R <: Rep[_] : CanBeQueryCondition](f: S => R): SqlWrapper[S] = {
-        val filter1 = new SqlFilter[S] {
-          override type ResultType = R
-          override val wt = implicitly[CanBeQueryCondition[ResultType]]
-          override val convert = f
-        }
-        this.copy(filters = filter1 :: this.filters)
-      }
+            def where_ext[R <: Rep[_] : CanBeQueryCondition](f: S => R): SqlWrapper[S] = {
+              val filter1 = new SqlFilter[S] {
+                override type ResultType = R
+                override val wt = implicitly[CanBeQueryCondition[ResultType]]
+                override val convert = f
+              }
+              this.copy(filters = filter1 :: this.filters)
+            }
 
-      def mlgb[R <: Rep[_] : CanBeQueryCondition](f: R): SqlWrapper[S] = ???
+            def where[R <: Rep[_] : CanBeQueryCondition](f: R): SqlWrapper[S] = ???
 
-      def order_by[R](f: S => R)(implicit wtImplicit: R => Ordered): SqlWrapper[S] = {
-        val order1 = new SqlOrder[S] {
-          override type ResultType = R
-          override val wt = wtImplicit
-          override val convert = f
-        }
-        this.copy(orders = order1 :: this.orders)
-      }
+            def order_by_ext[R](f: S => R)(implicit wtImplicit: R => Ordered): SqlWrapper[S] = {
+              val order1 = new SqlOrder[S] {
+                override type ResultType = R
+                override val wt = wtImplicit
+                override val convert = f
+              }
+              this.copy(orders = order1 :: this.orders)
+            }
 
-      def mlgb_orderby[R](f: R)(implicit wtImplicit: R => Ordered): SqlWrapper[S] = ???
+            def order_by[R](f: R)(implicit wtImplicit: R => Ordered): SqlWrapper[S] = ???
 
-      lazy val repGens = {
-        select match {
-          case head :: tail =>
-            tail.foldLeft(SelectRep.head(head))((repGen, eachSelect) => {
-              repGen.append(eachSelect)
-            })
-          case _ =>
-            throw new Exception("喵了个咪")
-        }
-      }
+            lazy val repGens = {
+              select match {
+                case head :: tail =>
+                  tail.foldLeft(SelectRep.head(head))((repGen, eachSelect) => {
+                    repGen.append(eachSelect)
+                  })
+                case _ =>
+                  throw new Exception("喵了个咪")
+              }
+            }
 
-      case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData])
+            case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData])
 
-      def queryResult[E[_]](query: Query[S, _, Seq]): DBIO[Seq[DataGen]] = {
-        val filterQuery = filters.foldLeft(query)((fQuery, eachFilter) => {
-          fQuery.filter(eachFilter.convert)(eachFilter.wt)
-        })
-        val sortQuery = orders.foldLeft(filterQuery)((fQuery, eachOrder) => {
-          fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
-        })
-        sortQuery.map(repGens.repGen(_))(repGens.shape).result.map(s => s.map(t => {
-          val listPre = () => repGens.listGen(t)
-          val mapPre = () => repGens.mapGen(t)
-          DataGen(list = listPre, map = mapPre)
-        }))
-      }
+            def queryResult[E[_]](query: Query[S, _, Seq]): DBIO[Seq[DataGen]] = {
+              val filterQuery = filters.foldLeft(query)((fQuery, eachFilter) => {
+                fQuery.filter(eachFilter.convert)(eachFilter.wt)
+              })
+              val sortQuery = orders.foldLeft(filterQuery)((fQuery, eachOrder) => {
+                fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
+              })
+              sortQuery.map(repGens.repGen(_))(repGens.shape).result.map(s => s.map(t => {
+                val listPre = () => repGens.listGen(t)
+                val mapPre = () => repGens.mapGen(t)
+                DataGen(list = listPre, map = mapPre)
+              }))
+            }
 
-    }
+          }
 
-    object select {
+          object select {
 
-      def apply[S](columns: SqlRep[S]*) = {
-        SqlWrapper(
-          select = columns.toList
-        )
-      }
+            def apply[S](columns: SqlRep[S]*) = {
+              SqlWrapper(
+                select = columns.toList
+              )
+            }
 
-    }
+          }
 
-    trait SelectRep[S] {
-      type ColType
-      type ValType
-      type TargetColType
-      val shape: Shape[_ <: FlatShapeLevel, ColType, ValType, TargetColType]
-      val listGen: ValType => List[SlickData]
-      val mapGen: ValType => Map[String, SlickData]
-      val repGen: S => ColType
+          trait SelectRep[S] {
+            type ColType
+            type ValType
+            type TargetColType
+            val shape: Shape[_ <: FlatShapeLevel, ColType, ValType, TargetColType]
+            val listGen: ValType => List[SlickData]
+            val mapGen: ValType => Map[String, SlickData]
+            val repGen: S => ColType
 
-      def append(baseRep: SqlRep[S]): SelectRep[S] = {
-        type ColType1 = (ColType, baseRep.R)
-        type ValType1 = (ValType, baseRep.T)
-        type TargetColType1 = (TargetColType, baseRep.G)
-        val shape1 = new TupleShape[FlatShapeLevel, ColType1, ValType1, TargetColType1](shape, baseRep.shape)
-        val listGen1: ValType1 => List[SlickData] = (newValue) => {
-          val baseList = listGen(newValue._1)
-          val appendValue = newValue._2
-          val appendSlickData = new SlickData {
-            override val property = baseRep.proName
+            def append(baseRep: SqlRep[S]): SelectRep[S] = {
+              type ColType1 = (ColType, baseRep.R)
+              type ValType1 = (ValType, baseRep.T)
+              type TargetColType1 = (TargetColType, baseRep.G)
+              val shape1 = new TupleShape[FlatShapeLevel, ColType1, ValType1, TargetColType1](shape, baseRep.shape)
+              val listGen1: ValType1 => List[SlickData] = (newValue) => {
+                val baseList = listGen(newValue._1)
+                val appendValue = newValue._2
+                val appendSlickData = new SlickData {
+                  override val property = baseRep.proName
             override type DataType = baseRep.T
             override val data = appendValue
           }
@@ -364,23 +364,23 @@ with OneInstancePerTest {
     def bb = {
       select(
         ((table1: PermissionTable) => {
-          (table1.typeName)
-        }) as "喵了个咪",
+          table1.typeName
+        }) as_ext "喵了个咪",
         ((table1: PermissionTable) => {
-          (table1.typeName)
-        }) as "喵了个咪11",
+          table1.typeName
+        }) as_ext "喵了个咪11",
         ((table1: PermissionTable) => {
-          (table1.describe)
-        }) as "喵了个咪22",
+          table1.describe
+        }) as_ext "喵了个咪22",
         ((table1: PermissionTable) => {
-          (table1.id)
-        }) as "喵了个咪33",
+          table1.id
+        }) as_ext "喵了个咪33",
         ((table1: PermissionTable) => {
-          (table1.describe)
-        }) as "喵了个咪44"
+          table1.describe
+        }) as_ext "喵了个咪44"
       )
-      .where (table1 => table1.describe === "cc")
-      .order_by (table1 => table1.name)
+      .where_ext (table1 => table1.describe === "cc")
+      .order_by_ext (table1 => table1.name)
     }
 
     object aabb {
@@ -397,20 +397,20 @@ with OneInstancePerTest {
       select(
         ((table1: (PermissionTable, CatTable)) => {
           table1._1.name
-        }) as "afdhrhtrhtrh",
+        }) as_ext "afdhrhtrhtrh",
         ((table1: (PermissionTable, CatTable)) => {
           table1._1.typeName
-        }) as "cccccccccccccc",
+        }) as_ext "cccccccccccccc",
         ((table1: (PermissionTable, CatTable)) => {
           table1._2.id
-        }) as "aaaaaaaaaaaaaa",
+        }) as_ext "aaaaaaaaaaaaaa",
         ((table1: (PermissionTable, CatTable)) => {
           table1._2.miao
-        }) as "bbbbbbbbbbbbbb"
+        }) as_ext "bbbbbbbbbbbbbb"
       )
-      .where { case (table1, table2) => table1.describe === "cc" }
-      .where { case (table1, table2) => table2.wang === table1.name }
-      .order_by { case (table1, table2) => table2.wang }
+      .where_ext { case (table1, table2) => table1.describe === "cc" }
+      .where_ext { case (table1, table2) => table2.wang === table1.name }
+      .order_by_ext { case (table1, table2) => table2.wang }
     }
 
     object ccdd {
@@ -437,13 +437,13 @@ with OneInstancePerTest {
 
     def dd = UbwMacro.body {
       (permission: PermissionTable, cat: CatTable) => {
-        select(permission hhhh "喵了个咪", permission.name hhhh "喵", cat.wang hhhh "十六夜的樱丘", cat hhhh "卖了个萌")
-          .mlgb(permission.describe like "%%")
-          .mlgb(permission.describe like "%%")
-          .mlgb(cat.wang like "%%")
-          .mlgb { cat.wang === permission.name }
-          .mlgb_orderby(cat.wang)
-          .mlgb_orderby(permission.describe)
+        select(permission as "喵了个咪", permission.name as "喵", cat.wang as "十六夜的樱丘", cat as "卖了个萌")
+          .where(permission.describe like "%%")
+          .where(permission.describe like "%%")
+          .where(cat.wang like "%%")
+          .where { cat.wang === permission.name }
+          .order_by(cat.wang)
+          .order_by(permission.describe)
       }
     }
 
