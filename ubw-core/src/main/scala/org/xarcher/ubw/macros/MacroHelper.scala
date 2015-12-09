@@ -1,6 +1,5 @@
-package org.xarcher.ubw.hlist
+package org.xarcher.ubw.macros
 
-import scala.annotation.StaticAnnotation
 import scala.reflect.macros.blackbox.Context
 import scala.language.experimental.macros
 /**
@@ -17,12 +16,5 @@ trait MacroUtils {
     val TermName(s) = methodSymbol
     s
   }
-
-}
-
-trait JpaJavaModels extends MacroUtils {
-
-  val c: Context
-  import c.universe._
 
 }
