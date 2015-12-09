@@ -13,7 +13,7 @@ object SelectMacro {
 }
 
 object UbwMacro {
-  def body(obj: Any): Any = macro UbwMacroImpl.impl
+  def from(obj: Any): Any = macro UbwMacroImpl.impl
 }
 
 class UbwMacroImpl(override val c: Context) extends MacroUtils {

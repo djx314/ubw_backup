@@ -435,8 +435,10 @@ with OneInstancePerTest {
     }
     println(hh + 2333)
 
-    def dd = UbwMacro.body {
-      (permission: PermissionTable, cat: CatTable) => {
+    import UbwMacro._
+
+    def dd = from {
+      (permission: PermissionTable, cat: CatTable) =>
         select(permission as "喵了个咪", permission.name as "喵", cat.wang as "十六夜的樱丘", cat as "卖了个萌")
           .where(permission.describe like "%%")
           .where(permission.describe like "%%")
@@ -444,7 +446,6 @@ with OneInstancePerTest {
           .where { cat.wang === permission.name }
           .order_by(cat.wang)
           .order_by(permission.describe)
-      }
     }
 
     db.run(dd).map(s => println(s.toList.map(t => t.list()))).futureValue(oneSecondTimeOut)
