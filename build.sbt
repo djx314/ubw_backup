@@ -55,3 +55,8 @@ libraryDependencies ++= Seq(
   //parboiled
   "org.parboiled" %% "parboiled" % "2.1.0"
 )
+
+lazy val ubw = project in file(".")
+
+lazy val caster = (project in file("./play-caster"))
+.dependsOn(ubw)
