@@ -1,4 +1,4 @@
-package org.xarcher.sbt
+package org.xarcher.ubw.sbt
 
 import sbt._
 import Keys._
@@ -41,9 +41,9 @@ object CustomSettings {
       """.stripMargin
 
   val ammoniteConsoleInit =
-    if (org.xarcher.sbt.OSName.isWindows)
+    if (OSName.isWindows)
       Seq(initialCommands in console += """ammonite.repl.Repl.run("repl.frontEnd() = ammonite.repl.frontend.FrontEnd.JLineWindows");""")
-    else if (org.xarcher.sbt.OSName.isLinux)
+    else if (OSName.isLinux)
       Seq(initialCommands in console += """ammonite.repl.Repl.run("");""")
     else
       Seq()

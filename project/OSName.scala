@@ -1,4 +1,4 @@
-package org.xarcher.sbt
+package org.xarcher.ubw.sbt
 
 object OSName {
 
