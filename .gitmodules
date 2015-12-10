@@ -1,0 +1,3 @@
+[submodule "play-caster"]
+	path = play-caster
+	url = https://github.com/scalax/play-caster.git
