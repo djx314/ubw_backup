@@ -1,5 +1,3 @@
-import org.xarcher.ubw.sbt._
-
 {val initPrintln = """
  _   _         _  _             _  _             _ 
 | | | | _ __  | |(_) _ __ ___  (_)| |_  ___   __| |
@@ -30,8 +28,6 @@ resolvers ++= Seq(
 )
 
 externalResolvers := Resolver.withDefaultResolvers(resolvers.value, mavenCentral = false)
-
-CustomSettings.customSettings
 
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0-M5" cross CrossVersion.full)
 
