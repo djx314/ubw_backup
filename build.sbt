@@ -57,6 +57,6 @@ libraryDependencies ++= Seq(
 )
 
 lazy val ubw = project in file(".")
+.dependsOn(caster)
 
 lazy val caster = (project in file("./play-caster"))
-.dependsOn(ubw)
