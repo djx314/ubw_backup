@@ -63,14 +63,3 @@ lazy val ubw = (project in file("."))
 lazy val `play-caster` = (project in file("./play-caster"))
 
 lazy val `poi-collection` = (project in file("./poi-collection"))
-  
-//git init command
-addCommandAlias("gitUpdate", """|;
-|git fetch;
-|git checkout works;
-|git fetch;
-|git checkout unlimited;
-|git pull;
-|git checkout blade;
-|git pull;
-""".stripMargin)
