@@ -63,8 +63,18 @@ trait SqlRep[S] {
 case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData])
 case class PropertyInfo(property: String, typeName: String)
 case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: () => DBIO[List[DataGen]]) {
+
   lazy val properties: List[PropertyInfo] = wrapper.properties
+
+  def toTableData(implicit ec: ExecutionContext): DBIO[TableData] = dataGen().map(s =>
+    TableData(
+      properties = this.properties,
+      data = s.map(t => t.map().map { case (key, value) => key -> value.toJson } )
+    )
+  )
+
 }
+case class TableData(properties: List[PropertyInfo], data: List[Map[String, Json]])
 
 case class SqlWrapper[S](
   select: List[SqlRep[S]],
