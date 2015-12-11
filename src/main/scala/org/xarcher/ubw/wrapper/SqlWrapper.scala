@@ -7,6 +7,7 @@ import scala.language.higherKinds
 import slick.dbio._
 import slick.driver.JdbcActionComponent
 import slick.lifted._
+import scala.reflect.runtime.universe._
 
 /**
   * Created by djx314 on 15-5-24.
@@ -23,7 +24,9 @@ trait SlickData {
     data.asJson(jsonEncoder)
   }
 
-  override def toString = s"SlickData(property=$property,data=$data)"
+  val typeTag: WeakTypeTag[DataType]
+
+  override def toString = s"SlickData(property=$property,data=$data,type=${typeTag.tpe})"
 
 }
 
@@ -49,6 +52,7 @@ trait SqlRep[S] {
   type R
   type T
   type G
+  val valueTypeTag: WeakTypeTag[T]
   val proName: String
   val f: S => R
   val shape: Shape[_ <: FlatShapeLevel, R, T, G]
@@ -96,7 +100,7 @@ case class SqlWrapper[S](
 
   case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData])
 
-  def queryResult[E[_]](query: Query[S, _, Seq])
+  def queryResult(query: Query[S, _, Seq])
     (implicit ec: ExecutionContext, ev: Query[_, repGens.ValType, Seq] => JdbcActionComponent#StreamingQueryActionExtensionMethods[Seq[repGens.ValType], repGens.ValType]): DBIO[Seq[DataGen]] = {
     val filterQuery = filters.foldLeft(query)((fQuery, eachFilter) => {
       fQuery.filter(eachFilter.convert)(eachFilter.wt)
@@ -145,6 +149,7 @@ trait SelectRep[S] {
         override type DataType = baseRep.T
         override val data = appendValue
         override val jsonEncoder = baseRep.jsonEncoder
+        override val typeTag = baseRep.valueTypeTag
       }
       baseList ::: appendSlickData :: Nil
     }
@@ -156,6 +161,7 @@ trait SelectRep[S] {
         override type DataType = baseRep.T
         override val data = appendValue
         override val jsonEncoder = baseRep.jsonEncoder
+        override val typeTag = baseRep.valueTypeTag
       }
       baseList + (baseRep.proName -> appendSlickData)
     }
@@ -191,6 +197,7 @@ object SelectRep {
           override type DataType = baseRep.T
           override val data = baseVal._1
           override val jsonEncoder = baseRep.jsonEncoder
+          override val typeTag = baseRep.valueTypeTag
         }
         initValue :: Nil
       }
@@ -200,6 +207,7 @@ object SelectRep {
           override type DataType = baseRep.T
           override val data = baseVal._1
           override val jsonEncoder = baseRep.jsonEncoder
+          override val typeTag = baseRep.valueTypeTag
         }
         Map(baseRep.proName -> initValue)
       }
