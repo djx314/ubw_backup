@@ -1,5 +1,7 @@
 package org.xarcher.ubw
 
+import io.circe._, io.circe.generic.auto._, io.circe.syntax._
+
 import slick.lifted._
 
 /**
@@ -9,14 +11,15 @@ package object wrapper {
 
   implicit class miaolegemiRepExtensionMethod[S1, R1](repLike: S1 => R1) {
 
-    def as_ext[T1, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1]) = {
+    def as_ext[T1, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1], jsonEncoder1: Encoder[T1]) = {
       new SqlRep[S1] {
-        type R = R1
-        type T = T1
-        type G = G1
-        val proName = columnName
-        val f = repLike
-        val shape = shape1
+        override type R = R1
+        override type T = T1
+        override type G = G1
+        override val proName = columnName
+        override val f = repLike
+        override val shape = shape1
+        override val jsonEncoder = jsonEncoder1
       }
     }
 

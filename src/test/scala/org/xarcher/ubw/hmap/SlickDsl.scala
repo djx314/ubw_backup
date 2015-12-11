@@ -1,5 +1,7 @@
 package org.xarcher.ubw.wrapper
 
+import io.circe._, io.circe.generic.auto._, io.circe.syntax._
+
 import org.h2.jdbcx.JdbcDataSource
 import org.scalatest._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
@@ -218,7 +220,7 @@ with OneInstancePerTest {
           .order_by(permission.describe)
     }
 
-    db.run(dd).map(s => println(s.map(t => t.list()))).futureValue(oneSecondTimeOut)
+    db.run(dd).map(s => println(s.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
 
 
   }

@@ -1,5 +1,7 @@
 package org.xarcher.ubw.wrapper
 
+import io.circe._, io.circe.generic.auto._, io.circe.syntax._
+
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 import slick.dbio._
@@ -14,6 +16,12 @@ trait SlickData {
   val property: String
   type DataType
   val data: DataType
+
+  val jsonEncoder: Encoder[DataType]
+
+  def toJson: Json = {
+    data.asJson(jsonEncoder)
+  }
 
   override def toString = s"SlickData(property=$property,data=$data)"
 
@@ -44,6 +52,7 @@ trait SqlRep[S] {
   val proName: String
   val f: S => R
   val shape: Shape[_ <: FlatShapeLevel, R, T, G]
+  val jsonEncoder: Encoder[T]
 }
 
 case class SqlWrapper[S](
@@ -135,6 +144,7 @@ trait SelectRep[S] {
         override val property = baseRep.proName
         override type DataType = baseRep.T
         override val data = appendValue
+        override val jsonEncoder = baseRep.jsonEncoder
       }
       baseList ::: appendSlickData :: Nil
     }
@@ -142,9 +152,10 @@ trait SelectRep[S] {
       val baseList = mapGen(newValue._1)
       val appendValue = newValue._2
       val appendSlickData = new SlickData {
-        val property = baseRep.proName
-        type DataType = baseRep.T
-        val data = appendValue
+        override val property = baseRep.proName
+        override type DataType = baseRep.T
+        override val data = appendValue
+        override val jsonEncoder = baseRep.jsonEncoder
       }
       baseList + (baseRep.proName -> appendSlickData)
     }
@@ -179,6 +190,7 @@ object SelectRep {
           override val property = baseRep.proName
           override type DataType = baseRep.T
           override val data = baseVal._1
+          override val jsonEncoder = baseRep.jsonEncoder
         }
         initValue :: Nil
       }
@@ -187,6 +199,7 @@ object SelectRep {
           override val property = baseRep.proName
           override type DataType = baseRep.T
           override val data = baseVal._1
+          override val jsonEncoder = baseRep.jsonEncoder
         }
         Map(baseRep.proName -> initValue)
       }
