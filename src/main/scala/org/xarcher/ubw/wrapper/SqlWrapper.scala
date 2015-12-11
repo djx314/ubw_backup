@@ -2,6 +2,7 @@ package org.xarcher.ubw.wrapper
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 
+import scala.collection.convert.Wrappers.SeqWrapper
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 import slick.dbio._
@@ -59,6 +60,12 @@ trait SqlRep[S] {
   val jsonEncoder: Encoder[T]
 }
 
+case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData])
+case class PropertyInfo(property: String, typeName: String)
+case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: () => DBIO[List[DataGen]]) {
+  lazy val properties: List[PropertyInfo] = wrapper.properties
+}
+
 case class SqlWrapper[S](
   select: List[SqlRep[S]],
   filters: List[SqlFilter[S]] = Nil,
@@ -98,21 +105,24 @@ case class SqlWrapper[S](
     }
   }
 
-  case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData])
+  lazy val properties = select.map(s => PropertyInfo(s.proName, s.valueTypeTag.tpe.toString))
 
   def queryResult(query: Query[S, _, Seq])
-    (implicit ec: ExecutionContext, ev: Query[_, repGens.ValType, Seq] => JdbcActionComponent#StreamingQueryActionExtensionMethods[Seq[repGens.ValType], repGens.ValType]): DBIO[Seq[DataGen]] = {
-    val filterQuery = filters.foldLeft(query)((fQuery, eachFilter) => {
-      fQuery.filter(eachFilter.convert)(eachFilter.wt)
-    })
-    val sortQuery = orders.foldLeft(filterQuery)((fQuery, eachOrder) => {
-      fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
-    })
-    sortQuery.map(repGens.repGen(_))(repGens.shape).result.map(s => s.toList.map(t => {
-      val listPre = () => repGens.listGen(t)
-      val mapPre = () => repGens.mapGen(t)
-      DataGen(list = listPre, map = mapPre)
-    }))
+    (implicit ec: ExecutionContext, ev: Query[_, repGens.ValType, Seq] => JdbcActionComponent#StreamingQueryActionExtensionMethods[Seq[repGens.ValType], repGens.ValType]): QueryInfo[S] = {
+    val dataFun = () => {
+      val filterQuery = filters.foldLeft(query)((fQuery, eachFilter) => {
+        fQuery.filter(eachFilter.convert)(eachFilter.wt)
+      })
+      val sortQuery = orders.foldLeft(filterQuery)((fQuery, eachOrder) => {
+        fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
+      })
+      sortQuery.map(repGens.repGen(_))(repGens.shape).result.map(s => s.toList.map(t => {
+        val listPre = () => repGens.listGen(t)
+        val mapPre = () => repGens.mapGen(t)
+        DataGen(list = listPre, map = mapPre)
+      }))
+    }
+    QueryInfo(wrapper = this, dataGen = dataFun)
   }
 
 }
