@@ -211,7 +211,7 @@ with OneInstancePerTest {
 
     def dd = from {
       (permission: PermissionTable, cat: CatTable) =>
-        select(permission as "喵了个咪", permission.name as "喵", cat.wang as "十六夜的樱丘", cat as "卖了个萌", permission.typeName as "喵喵喵")
+        org.xarcher.ubw.wrapper.select(permission as "喵了个咪", permission.name as "喵", cat.wang as "十六夜的樱丘", cat as "卖了个萌", permission.typeName as "喵喵喵")
           .where(permission.describe like "%%")
           .where(permission.describe like "%%")
           .where(cat.wang like "%%")

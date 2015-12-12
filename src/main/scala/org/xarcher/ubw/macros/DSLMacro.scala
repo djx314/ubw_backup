@@ -48,7 +48,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
             nameConvert
           }
 
-          val functionTransformer = new Transformer {
+        val functionTransformer = new Transformer {
             override def transform(tree: Tree): Tree = {
               tree match {
                 case q"""${x1}.where[${x2}](${x3})(${x4})""" =>
@@ -61,7 +61,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                   val aa = q"""$x1.order_by_ext { $nameConvert }"""
                   this.transform((aa))
 
-                case q"""select.apply[${_}](..$columns)""" =>
+                case q"""org.xarcher.ubw.wrapper.select.apply[..${_}](..$columns)""" =>
                   val newColumns = (for {
                     q"""${_}[..${_}](..${ columnDescribe :: Nil }).as[..${_}](..${ columnName :: Nil })(..${_})""" <- columns
                   } yield {
@@ -82,7 +82,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
 
                     q"""${nameConvert}.as_ext($columnName)"""
                   })
-                  q"""select(..$newColumns)"""
+                  q"""org.xarcher.ubw.wrapper.select(..$newColumns)"""
 
                 case other => {
                   super.transform(other)
@@ -104,7 +104,6 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
             }
            """
           }
-        println(dbioBody)
         dbioBody
 
       case _ => c.abort(c.enclosingPosition, "请输入一个合符要求的代码块")

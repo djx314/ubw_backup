@@ -2,7 +2,6 @@ package org.xarcher.ubw.wrapper
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 
-import scala.collection.convert.Wrappers.SeqWrapper
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 import slick.dbio._
