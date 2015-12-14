@@ -52,15 +52,47 @@ trait SqlRep[S] {
   type R
   type T
   type G
-  val valueTypeTag: WeakTypeTag[T]
   val proName: String
+  val isHidden: Boolean = false
   val f: S => R
   val shape: Shape[_ <: FlatShapeLevel, R, T, G]
+  val valueTypeTag: WeakTypeTag[T]
   val jsonEncoder: Encoder[T]
+
+  def hidden(isHidden: Boolean = this.isHidden): SqlRep[S] = {
+    val isHidden1 = isHidden
+    implicit val shape1 = this.shape
+    implicit val valueTypeTag1 = this.valueTypeTag
+    implicit val jsonEncoder1 = this.jsonEncoder
+    this.copy(isHidden = isHidden1)
+  }
+
+  def copy(proName: String = this.proName, isHidden: Boolean = this.isHidden, f: S => R = this.f): SqlRep[S] = {
+    type R1 = R
+    type T1 = T
+    type G1 = G
+    val proName1 = proName
+    val isHidden1 = isHidden
+    val f1 = f
+    val shape1 = this.shape
+    val valueTypeTag1 = this.valueTypeTag
+    val jsonEncoder1 = this.jsonEncoder
+    new SqlRep[S] {
+      override type R = R1
+      override type T = T1
+      override type G = G1
+      override val proName = proName1
+      override val isHidden = isHidden1
+      override val f = f1
+      override val shape = shape1
+      override val valueTypeTag = valueTypeTag1
+      override val jsonEncoder = jsonEncoder1
+    }
+  }
 }
 
 case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData])
-case class PropertyInfo(property: String, typeName: String)
+case class PropertyInfo(property: String, typeName: String, isHidden: Boolean)
 case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: () => DBIO[List[DataGen]]) {
 
   lazy val properties: List[PropertyInfo] = wrapper.properties
@@ -114,7 +146,7 @@ case class SqlWrapper[S](
     }
   }
 
-  lazy val properties = select.map(s => PropertyInfo(s.proName, s.valueTypeTag.tpe.toString))
+  lazy val properties = select.map(s => PropertyInfo(s.proName, s.valueTypeTag.tpe.toString, s.isHidden))
 
   def queryResult(query: Query[S, _, Seq])
     (implicit ec: ExecutionContext, ev: Query[_, repGens.ValType, Seq] => JdbcActionComponent#StreamingQueryActionExtensionMethods[Seq[repGens.ValType], repGens.ValType]): QueryInfo[S] = {

@@ -49,61 +49,74 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
           }
 
         val functionTransformer = new Transformer {
-            override def transform(tree: Tree): Tree = {
-              tree match {
-                case q"""${x1}.where[${x2}](${x3})(${x4})""" =>
-                  val nameConvert = convert(x3)
-                  val aa = q"""$x1.where_ext { $nameConvert }"""
-                  this.transform((aa))
+          override def transform(tree: Tree): Tree = {
+            tree match {
+              case q"""${x1}.where[${x2}](${x3})(${x4})""" =>
+                val nameConvert = convert(x3)
+                val aa = q"""$x1.where_ext { $nameConvert }"""
+                this.transform((aa))
 
-                case q"""${x1}.order_by[${x2}](${x3})(${x4})""" =>
-                  val nameConvert = convert(x3)
-                  val aa = q"""$x1.order_by_ext { $nameConvert }"""
-                  this.transform((aa))
+              case q"""${x1}.order_by[${x2}](${x3})(${x4})""" =>
+                val nameConvert = convert(x3)
+                val aa = q"""$x1.order_by_ext { $nameConvert }"""
+                this.transform((aa))
 
-                case q"""org.xarcher.ubw.wrapper.select.apply[..${_}](..$columns)""" =>
-                  val newColumns = (for {
-                    q"""${_}[..${_}](..${ columnDescribe :: Nil }).as[..${_}](..${ columnName :: Nil })(..${_})""" <- columns
-                  } yield {
-                    val valToMatch: Tree => Tree = (body) => {
-                      val name = TermName(c.freshName)
-                      val types = tq"""(..${tablesInfo.map(_._2)})"""
-                      q"""
-                       ($name : $types) => $name match {
-                        case (..$tableParams) => $body
-                       }
-                     """
+              case q"""org.xarcher.ubw.wrapper.select.apply[..${_}](..$columns)""" =>
+                val newColumns = (for {
+                  eachColumn <- columns
+                } yield {
+                    val columnTransaformer = new Transformer {
+                      override def transform(tree: Tree): Tree = {
+                        tree match {
+                          case q"""${_}[..${_}](..${ columnDescribe :: Nil }).as[..${_}](..${ columnName :: Nil })(..${_})""" =>
+                            val valToMatch: Tree => Tree = (body) => {
+                              val name = TermName(c.freshName)
+                              val types = tq"""(..${tablesInfo.map(_._2)})"""
+                              q"""
+                              ($name : $types) => $name match {
+                                case (..$tableParams) => $body
+                              }
+                              """
+                            }
+
+                            val nameConvert = tablesInfo.foldLeft(valToMatch(columnDescribe)) { case (baseFunction, (paramName, _)) => {
+                              val nameTranformer = paramTransformGen(paramName, c.freshName(paramName))
+                              nameTranformer.transform(baseFunction)
+                            } }
+
+                            q"""${nameConvert}.as_ext($columnName)"""
+                          case other => {
+                            super.transform(other)
+                          }
+                        }
+                      }
                     }
 
-                    val nameConvert = tablesInfo.foldLeft(valToMatch(columnDescribe)) { case (baseFunction, (paramName, _)) => {
-                      val nameTranformer = paramTransformGen(paramName, c.freshName(paramName))
-                      nameTranformer.transform(baseFunction)
-                    } }
+                    columnTransaformer.transform(eachColumn)
+                })
 
-                    q"""${nameConvert}.as_ext($columnName)"""
-                  })
-                  q"""org.xarcher.ubw.wrapper.select(..$newColumns)"""
+                q"""org.xarcher.ubw.wrapper.select(..$newColumns)"""
 
-                case other => {
-                  super.transform(other)
-                }
+              case other => {
+                super.transform(other)
               }
             }
           }
-          val sqlWrapperBody = functionTransformer.transform(c.untypecheck(body))
-          val dbioBody = {
-            val vName = TermName(c.freshName)
-            val forName = TermName(c.freshName)
-            val valTypeMap = tablesInfo.map { case (key, resultType) => TermName(c.freshName) -> resultType}
-            val forQuery = valTypeMap.map { case (valName, resultType) => fq"""$valName <- TableQuery[$resultType]""" }
-            q"""
-            {
-              val $vName = { $sqlWrapperBody }
-              val $forName = for(..$forQuery) yield { (..${valTypeMap.map(_._1)}) }
-              $vName.queryResult($forName)
-            }
-           """
+        }
+        val sqlWrapperBody = functionTransformer.transform(c.untypecheck(body))
+        val dbioBody = {
+          val vName = TermName(c.freshName)
+          val forName = TermName(c.freshName)
+          val valTypeMap = tablesInfo.map { case (key, resultType) => TermName(c.freshName) -> resultType}
+          val forQuery = valTypeMap.map { case (valName, resultType) => fq"""$valName <- TableQuery[$resultType]""" }
+          q"""
+          {
+            val $vName = { $sqlWrapperBody }
+            val $forName = for(..$forQuery) yield { (..${valTypeMap.map(_._1)}) }
+            $vName.queryResult($forName)
           }
+         """
+        }
         dbioBody
 
       case _ => c.abort(c.enclosingPosition, "请输入一个合符要求的代码块")
