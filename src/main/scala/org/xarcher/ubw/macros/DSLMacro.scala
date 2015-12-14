@@ -67,14 +67,38 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                 } yield {
                     val columnTransaformer = new Transformer {
                       override def transform(tree: Tree): Tree = {
+                        println(tree)
                         tree match {
-                          case q"""${_}[..${_}](..${ columnDescribe :: Nil }).as[..${_}](..${ columnName :: Nil })(..${_})""" =>
-                            val valToMatch: Tree => Tree = (body) => {
+                          case contentTree@q"""${_}[..${_}](..${ columnDescribe }).as[..${_}](..${ columnName :: Nil })(..${_}).order""" =>
+                            println(contentTree + "3333" * 100)
+                            val valToMatch: List[Tree] => Tree = (body) => {
                               val name = TermName(c.freshName)
                               val types = tq"""(..${tablesInfo.map(_._2)})"""
                               q"""
                               ($name : $types) => $name match {
-                                case (..$tableParams) => $body
+                                case (..$tableParams) => {
+                                  ..$body
+                                }
+                              }
+                              """
+                            }
+                            val nameConvert = tablesInfo.foldLeft(valToMatch(columnDescribe)) { case (baseFunction, (paramName, _)) => {
+                              val nameTranformer = paramTransformGen(paramName, c.freshName(paramName))
+                              nameTranformer.transform(baseFunction)
+                            } }
+
+                            q"""${nameConvert}.as_ext($columnName).order_ext"""
+
+                          case contentTree@q"""${_}[..${_}](..${ columnDescribe }).as[..${_}](..${ columnName :: Nil })(..${_})""" =>
+                            println(contentTree + "2222" * 100)
+                            val valToMatch: List[Tree] => Tree = (body) => {
+                              val name = TermName(c.freshName)
+                              val types = tq"""(..${tablesInfo.map(_._2)})"""
+                              q"""
+                              ($name : $types) => $name match {
+                                case (..$tableParams) => {
+                                  ..$body
+                                }
                               }
                               """
                             }
@@ -87,7 +111,9 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                             q"""${nameConvert}.as_ext($columnName)"""
 
                           case q"${orderContent}.order" =>
-                            q"""${orderContent}.order_ext"""
+                            val resultContent = super.transform(orderContent)
+                            println(q"""${resultContent}.order_ext""" + "1111" * 100)
+                            q"""${resultContent}.order_ext"""
 
                           case other =>
                             super.transform(other)
@@ -98,6 +124,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                     columnTransaformer.transform(eachColumn)
                 })
 
+                //println(columns)
                 println(newColumns)
                 q"""org.xarcher.ubw.wrapper.select(..$newColumns)"""
 
