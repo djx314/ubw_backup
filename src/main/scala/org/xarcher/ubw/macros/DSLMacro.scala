@@ -85,9 +85,12 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                             } }
 
                             q"""${nameConvert}.as_ext($columnName)"""
-                          case other => {
+
+                          case q"${orderContent}.order" =>
+                            q"""${orderContent}.order_ext"""
+
+                          case other =>
                             super.transform(other)
-                          }
                         }
                       }
                     }
@@ -95,6 +98,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                     columnTransaformer.transform(eachColumn)
                 })
 
+                println(newColumns)
                 q"""org.xarcher.ubw.wrapper.select(..$newColumns)"""
 
               case other => {
