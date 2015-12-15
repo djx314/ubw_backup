@@ -147,7 +147,7 @@ with OneInstancePerTest {
           table1.typeName
         }) as_ext "喵了个咪",
         ((table1: PermissionTable) => {
-          table1.typeName
+          table1.typeName.desc
         }) as_ext "喵了个咪11",
         ((table1: PermissionTable) => {
           table1.describe

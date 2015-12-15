@@ -1,6 +1,7 @@
 package org.xarcher.ubw.wrapper
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
+import slick.ast.TypedType
 
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
@@ -41,10 +42,10 @@ trait SqlFilter[S] {
 
 trait SqlOrder[S] {
 
-  type ResultType
+  type ValType
   type TableType = S
-  val wt: ResultType => Ordered
-  val convert: TableType => ResultType
+  val wt: Rep[ValType] => ColumnOrdered[ValType]
+  val convert: TableType => Rep[ValType]
 
 }
 
@@ -69,11 +70,13 @@ trait SqlRep[S, R] {
     this.copy(isHidden = isHidden1)
   }
 
-  def order_ext(implicit wt1: R => Ordered): SqlRep[S, R] = {
+  def order_ext[K](implicit columnGen: R <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K], typeTypedK: TypedType[K]): SqlRep[S, R] = {
+    val convert1: S => Rep[K] = table =>
+      f(table)
     val sqlOrder1 = new SqlOrder[S] {
-      override type ResultType = R
-      override val wt = wt1
-      override val convert = f
+      override type ValType = K
+      override val wt = wtImplicit
+      override val convert = convert1
     }
     this.copy(sqlOrder = Option(sqlOrder1))
   }
@@ -116,11 +119,11 @@ trait SqlRep[S, R] {
 
 case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData])
 case class PropertyInfo(property: String, typeName: String, isHidden: Boolean, canOrder: Boolean)
-case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: List[String] => DBIO[List[DataGen]]) {
+case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: List[(String, Boolean)] => DBIO[List[DataGen]]) {
 
   lazy val properties: List[PropertyInfo] = wrapper.properties
 
-  def toTableData(columnName: List[String])(implicit ec: ExecutionContext): DBIO[TableData] = dataGen(columnName).map(s =>
+  def toTableData(columnName: List[(String, Boolean)])(implicit ec: ExecutionContext): DBIO[TableData] = dataGen(columnName).map(s =>
     TableData(
       properties = this.properties,
       data = s.map(t => t.map().map { case (key, value) => key -> value.toJson } )
@@ -147,16 +150,16 @@ case class SqlWrapper[S](
 
   def where[R <: Rep[_] : CanBeQueryCondition](f: R): SqlWrapper[S] = ???
 
-  def order_by_ext[R](f: S => R)(implicit wtImplicit: R => Ordered): SqlWrapper[S] = {
+  def order_by_ext[K : TypedType](f: S => Rep[K])(implicit wtImplicit: Rep[K] => ColumnOrdered[K]): SqlWrapper[S] = {
     val order1 = new SqlOrder[S] {
-      override type ResultType = R
+      override type ValType = K
       override val wt = wtImplicit
       override val convert = f
     }
     this.copy(orders = order1 :: this.orders)
   }
 
-  def order_by[R](f: R)(implicit wtImplicit: R => Ordered): SqlWrapper[S] = ???
+  def order_by[K : TypedType](f: Rep[K])/*(implicit wtImplicit: Rep[K] => ColumnOrdered[K])*/: SqlWrapper[S] = ???
 
   lazy val repGens = {
     select match {
@@ -170,64 +173,47 @@ case class SqlWrapper[S](
   }
 
   lazy val properties = select.map(s => PropertyInfo(s.proName, s.valueTypeTag.tpe.toString, s.isHidden, orderMap.exists(_._1 == s.proName)))
+  //获取列名和排序方案的 Map
   lazy val orderMap: Map[String, SqlOrder[S]] = {
-    val strSqlOrderMap: List[(String, SqlOrder[S])] = {
+    //不考虑 targetName 的基本 map
+    val strSqlOrderMap: Map[String, SqlOrder[S]] = {
       select.collect {
         case s if s.sqlOrder.isDefined =>
           s.proName -> s.sqlOrder.get
       }
-      /*(eachSelect =>
-        eachSelect.ordereImplicit match {
-          case Some(eachImplicit) =>
-            Option(eachSelect.proName -> new SqlOrder[S] {
-              override type ResultType = eachSelect.R
-              override val wt = eachImplicit
-              override val convert = eachSelect.f
-            })
-          case _ => None
-        }
-      ).collect { case Some(s) => s }*/
-    }
-    strSqlOrderMap.toMap
-
-    /*select.map { s => (s.orderTarget -> s.ordereImplicit) match {
-      case (Some(targetName), _) =>
-        Option(targetName -> new SqlOrder[S] {
-          override type ResultType = s.R
-          override val wt = repMap.get(Option(targetName)).flatten.getOrElse(throw new Exception("目标的列没有设置为排序"))
-          override val convert = s.f
-        })
-
-      case (_, Some(orderImplicit)) =>
-        Option(s.proName -> new SqlOrder[S] {
-          override type ResultType = s.R
-          override val wt = orderImplicit
-          override val convert = s.f
-        })
-
-      case _ =>
-        None
+    }.toMap
+    //对 targetName 不为空的列进行转化
+    select.collect {
+      case s if s.orderTarget.isDefined =>
+        s.proName -> s.orderTarget.get
+    }.foldLeft(strSqlOrderMap) { case (eachMap, (eachPro, eachTarget)) => {
+      val plusItem = eachPro -> eachMap.get(eachTarget).getOrElse(throw new Exception("targetName: $eachTarget 对应的列没有被排序"))
+      eachMap + plusItem
     } }
-    .collect { case Some(s) => s }
-    .toMap*/
   }
 
   def queryResult(query: Query[S, _, Seq])
     (implicit ec: ExecutionContext, ev: Query[_, repGens.ValType, Seq] => JdbcActionComponent#StreamingQueryActionExtensionMethods[Seq[repGens.ValType], repGens.ValType]): QueryInfo[S] = {
-    val dataFun = (orderColumns: List[String]) => {
+    val dataFun = (orderColumns: List[(String, Boolean)]) => {
       val filterQuery = filters.foldLeft(query)((fQuery, eachFilter) => {
         fQuery.filter(eachFilter.convert)(eachFilter.wt)
       })
       val codeSortQuery = orders.foldLeft(filterQuery)((fQuery, eachOrder) => {
         fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
       })
-      val paramSortQuery = orderColumns.foldLeft(codeSortQuery)((cQuery, eachOrderName) => {
+      val paramSortQuery = orderColumns.foldLeft(codeSortQuery) { case (cQuery, (eachOrderName, eachIsDesc)) => {
         orderMap.get(eachOrderName) match {
           case Some(sqlOrder) =>
-            cQuery.sortBy(table1 => sqlOrder.wt(sqlOrder.convert(table1)))
+            cQuery.sortBy(table1 => {
+              val orderedColumn = sqlOrder.wt(sqlOrder.convert(table1))
+              if (eachIsDesc)
+                orderedColumn.desc
+              else
+                orderedColumn.asc
+            })
           case _ => cQuery
         }
-      })
+      } }
       paramSortQuery.map(repGens.repGen(_))(repGens.shape).result.map(s => s.toList.map(t => {
         val listPre = () => repGens.listGen(t)
         val mapPre = () => repGens.mapGen(t)
