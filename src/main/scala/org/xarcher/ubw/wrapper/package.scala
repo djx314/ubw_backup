@@ -20,6 +20,8 @@ package object wrapper {
         override type G = G1
         override val valueTypeTag = implicitly[WeakTypeTag[T1]]
         override val proName = columnName
+        override val isHidden = false
+        override val isDefaultDesc = true
         override val f = repLike
         override val shape = shape1
         override val jsonEncoder = jsonEncoder1

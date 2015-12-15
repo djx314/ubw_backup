@@ -68,7 +68,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                     val columnTransaformer = new Transformer {
                       override def transform(tree: Tree): Tree = {
                         tree match {
-                          case contentTree@q"""${_}[..${_}](..${ columnDescribe }).as[..${_}](..${ columnName :: Nil })(..${_}).${decide}""" =>
+                          /*case contentTree@q"""${_}[..${_}](..${ columnDescribe }).as[..${_}](..${ columnName :: Nil })(..${_}).${decide}""" =>
                             val valToMatch: List[Tree] => Tree = (body) => {
                               val name = TermName(c.freshName)
                               val types = tq"""(..${tablesInfo.map(_._2)})"""
@@ -85,8 +85,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                               nameTranformer.transform(baseFunction)
                             } }
 
-                            this.transform(q"""${nameConvert}.as_ext($columnName).$decide""")
-
+                            this.transform(q"""${nameConvert}.as_ext($columnName).$decide""")*/
                           case contentTree@q"""${_}[..${_}](..${ columnDescribe }).as[..${_}](..${ columnName :: Nil })(..${_})""" =>
                             val valToMatch: List[Tree] => Tree = (body) => {
                               val name = TermName(c.freshName)
@@ -106,11 +105,9 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                             } }
 
                             q"""${nameConvert}.as_ext($columnName)"""
-
-                          case q"${orderContent}.order" =>
+                          /*case q"${orderContent}.order(..$params)" =>
                             val resultContent = this.transform(orderContent)
-                            q"""${resultContent}.order_ext"""
-
+                            q"""${resultContent}.order_ext(..$params)"""*/
                           case other =>
                             super.transform(other)
                         }
