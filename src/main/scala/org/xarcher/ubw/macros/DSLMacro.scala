@@ -28,25 +28,28 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
   def impl(obj: c.Expr[Any]): c.Expr[Any] = {
     val resultTree = obj match {
       case Expr(s) =>
-        val q"""(..${tablesProvide}) => {$body}""" = s
+        val q"""
+          ..${ubwContentBody}
+          (..${tablesProvide}) => {$body}
+        """ = s
 
         val tablesInfo: List[(String, Tree)] = for {
           q"""$mods val ${ TermName(paramName) } : $paramType = ${_}""" <- tablesProvide
         } yield
           paramName -> paramType
 
-          val tableParams = tablesInfo.map { case (vName, vType) => {
-            Bind(TermName(vName), Typed(Ident(termNames.WILDCARD), vType))
-          } }
+        val tableParams = tablesInfo.map { case (vName, vType) => {
+          Bind(TermName(vName), Typed(Ident(termNames.WILDCARD), vType))
+        } }
 
-          val convert = (contentTree: Tree) => {
-            val caseBody = q"""{ case (..$tableParams) => $contentTree }"""
-            val nameConvert = tablesInfo.foldLeft(caseBody: Tree) { case (baseCase, (vName, _)) => {
-              val nameTranformer = paramTransformGen(vName, c.freshName(vName))
-              nameTranformer.transform(baseCase)
-            } }
-            nameConvert
-          }
+        val convert = (contentTree: Tree) => {
+          val caseBody = q"""{ case (..$tableParams) => $contentTree }"""
+          val nameConvert = tablesInfo.foldLeft(caseBody: Tree) { case (baseCase, (vName, _)) => {
+            val nameTranformer = paramTransformGen(vName, c.freshName(vName))
+            nameTranformer.transform(baseCase)
+          } }
+          nameConvert
+        }
 
         val functionTransformer = new Transformer {
           override def transform(tree: Tree): Tree = {
@@ -135,6 +138,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
           val forQuery = valTypeMap.map { case (valName, resultType) => fq"""$valName <- TableQuery[$resultType]""" }
           q"""
           {
+            ..$ubwContentBody
             val $vName = { $sqlWrapperBody }
             val $forName = for(..$forQuery) yield { (..${valTypeMap.map(_._1)}) }
             $vName.queryResult($forName)

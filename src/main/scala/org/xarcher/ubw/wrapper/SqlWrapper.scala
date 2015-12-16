@@ -40,12 +40,21 @@ trait SqlFilter[S] {
 
 }
 
-trait SqlOrder[S] {
+trait SqlRepOrder[S] {
 
   type ValType
   type TableType = S
   val wt: Rep[ValType] => ColumnOrdered[ValType]
   val convert: TableType => Rep[ValType]
+
+}
+
+trait SqlOrder[S] {
+
+  type RepType
+  type TableType = S
+  val wt: RepType => Ordered
+  val convert: TableType => RepType
 
 }
 
@@ -64,7 +73,7 @@ trait SqlRep[S, R] {
     * 如果同时拥有 orderTarget 和 ordereImplicit，以 orderTarget 为先
     */
   val orderTarget: Option[String] = None
-  val sqlOrder: Option[SqlOrder[S]] = None
+  val sqlOrder: Option[SqlRepOrder[S]] = None
 
   def hidden(isHidden: Boolean = this.isHidden): SqlRep[S, R] = {
     val isHidden1 = isHidden
@@ -75,7 +84,7 @@ trait SqlRep[S, R] {
     val convert1: S => Rep[K] = table =>
       f(table)
     val isDefaultDesc1 = isDefaultDesc
-    val sqlOrder1 = new SqlOrder[S] {
+    val sqlOrder1 = new SqlRepOrder[S] {
       override type ValType = K
       override val wt = wtImplicit
       override val convert = convert1
@@ -92,7 +101,7 @@ trait SqlRep[S, R] {
   //def order11111111(isDefaultDesc: Boolean): SqlRep[S, R] = ???
 
   def copy(proName: String = this.proName, isHidden: Boolean = this.isHidden, isDefaultDesc: Boolean = this.isDefaultDesc, f: S => R = this.f,
-           orderTarget: Option[String] = this.orderTarget, sqlOrder: Option[SqlOrder[S]] = this.sqlOrder): SqlRep[S, R] = {
+           orderTarget: Option[String] = this.orderTarget, sqlOrder: Option[SqlRepOrder[S]] = this.sqlOrder): SqlRep[S, R] = {
     type R1 = R
     type T1 = T
     type G1 = G
@@ -155,16 +164,16 @@ case class SqlWrapper[S](
 
   def where[R <: Rep[_] : CanBeQueryCondition](f: R): SqlWrapper[S] = ???
 
-  def order_by_ext[K : TypedType](f: S => Rep[K])(implicit wtImplicit: Rep[K] => ColumnOrdered[K]): SqlWrapper[S] = {
+  def order_by_ext[K](f: S => K)(implicit wtImplicit: K => Ordered): SqlWrapper[S] = {
     val order1 = new SqlOrder[S] {
-      override type ValType = K
+      override type RepType = K
       override val wt = wtImplicit
       override val convert = f
     }
     this.copy(orders = order1 :: this.orders)
   }
 
-  def order_by[K : TypedType](f: Rep[K])/*(implicit wtImplicit: Rep[K] => ColumnOrdered[K])*/: SqlWrapper[S] = ???
+  def order_by[K](f: K)(implicit wtImplicit: K => Ordered): SqlWrapper[S] = ???
 
   lazy val repGens = {
     select match {
@@ -179,9 +188,9 @@ case class SqlWrapper[S](
 
   lazy val properties = select.map(s => PropertyInfo(s.proName, s.valueTypeTag.tpe.toString, s.isHidden, orderMap.exists(_._1 == s.proName), s.isDefaultDesc))
   //获取列名和排序方案的 Map
-  lazy val orderMap: Map[String, SqlOrder[S]] = {
+  lazy val orderMap: Map[String, SqlRepOrder[S]] = {
     //不考虑 targetName 的基本 map
-    val strSqlOrderMap: Map[String, SqlOrder[S]] = {
+    val strSqlOrderMap: Map[String, SqlRepOrder[S]] = {
       select.collect {
         case s if s.sqlOrder.isDefined =>
           s.proName -> s.sqlOrder.get
@@ -212,9 +221,9 @@ case class SqlWrapper[S](
             cQuery.sortBy(table1 => {
               val orderedColumn = sqlOrder.wt(sqlOrder.convert(table1))
               if (eachIsDesc)
-                orderedColumn.desc
+                orderedColumn.desc.nullsLast
               else
-                orderedColumn.asc
+                orderedColumn.asc.nullsLast
             })
           case _ => cQuery
         }
