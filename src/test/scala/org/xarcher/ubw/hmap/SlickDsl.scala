@@ -147,7 +147,7 @@ with OneInstancePerTest {
           table1.typeName
         }) as_ext "喵了个咪",
         ((table1: PermissionTable) => {
-          table1.typeName.desc
+          table1.typeName
         }) as_ext "喵了个咪11",
         ((table1: PermissionTable) => {
           table1.describe
@@ -171,7 +171,7 @@ with OneInstancePerTest {
 
     val query = aabb.aabb(permissionTq1)
 
-    db.run(query.dataGen()).map(s => println(s.map(t => t.map()))).futureValue(oneSecondTimeOut)
+    db.run(query.dataGen(Nil)).map(s => println(s.map(t => t.map()))).futureValue(oneSecondTimeOut)
 
     def cc = {
       select(
@@ -205,7 +205,7 @@ with OneInstancePerTest {
 
     val query1 = ccdd.aabb(permissionTq1, catTq1)
 
-    db.run(query1.dataGen()).map(s => println(s.map(t => t.list()))).futureValue(oneSecondTimeOut)
+    db.run(query1.dataGen(Nil)).map(s => println(s.map(t => t.list()))).futureValue(oneSecondTimeOut)
 
     import Ubw._
 
@@ -220,8 +220,8 @@ with OneInstancePerTest {
           .order_by(permission.describe)
     }
 
-    db.run(dd.dataGen()).map(s => println(s.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
-    db.run(dd.dataGen()).map(s => println(s.map(t => t.list()))).futureValue(oneSecondTimeOut)
+    db.run(dd.dataGen(Nil)).map(s => println(s.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
+    db.run(dd.dataGen(Nil)).map(s => println(s.map(t => t.list()))).futureValue(oneSecondTimeOut)
     println(dd.properties)
 
   }
