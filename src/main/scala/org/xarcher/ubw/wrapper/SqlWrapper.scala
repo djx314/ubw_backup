@@ -176,7 +176,7 @@ case class SqlWrapper[S](
   def order_by[K](f: K)(implicit wtImplicit: K => Ordered): SqlWrapper[S] = ???
 
   lazy val repGens = {
-    select match {
+    select.dropWhile(s => s.isHidden == true) match {
       case head :: tail =>
         tail.foldLeft(SelectRep.head(head))((repGen, eachSelect) => {
           repGen.append(eachSelect)
@@ -260,50 +260,54 @@ trait SelectRep[S] {
   //val repMap: Map[String, SqlRep[S]]
 
   def append[RT](baseRep: SqlRep[S, RT]): SelectRep[S] = {
-    type ColType1 = (ColType, RT)
-    type ValType1 = (ValType, baseRep.T)
-    type TargetColType1 = (TargetColType, baseRep.G)
-    val shape1 = new TupleShape[FlatShapeLevel, ColType1, ValType1, TargetColType1](shape, baseRep.shape)
-    val listGen1: ValType1 => List[SlickData] = (newValue) => {
-      val baseList = listGen(newValue._1)
-      val appendValue = newValue._2
-      val appendSlickData = new SlickData {
-        override val property = baseRep.proName
-        override type DataType = baseRep.T
-        override val data = appendValue
-        override val jsonEncoder = baseRep.jsonEncoder
-        override val typeTag = baseRep.valueTypeTag
+    if (baseRep.isHidden) {
+      this
+    } else {
+      type ColType1 = (ColType, RT)
+      type ValType1 = (ValType, baseRep.T)
+      type TargetColType1 = (TargetColType, baseRep.G)
+      val shape1 = new TupleShape[FlatShapeLevel, ColType1, ValType1, TargetColType1](shape, baseRep.shape)
+      val listGen1: ValType1 => List[SlickData] = (newValue) => {
+        val baseList = listGen(newValue._1)
+        val appendValue = newValue._2
+        val appendSlickData = new SlickData {
+          override val property = baseRep.proName
+          override type DataType = baseRep.T
+          override val data = appendValue
+          override val jsonEncoder = baseRep.jsonEncoder
+          override val typeTag = baseRep.valueTypeTag
+        }
+        baseList ::: appendSlickData :: Nil
       }
-      baseList ::: appendSlickData :: Nil
-    }
-    val mapGen1: ValType1 => Map[String, SlickData] = (newValue) => {
-      val baseList = mapGen(newValue._1)
-      val appendValue = newValue._2
-      val appendSlickData = new SlickData {
-        override val property = baseRep.proName
-        override type DataType = baseRep.T
-        override val data = appendValue
-        override val jsonEncoder = baseRep.jsonEncoder
-        override val typeTag = baseRep.valueTypeTag
+      val mapGen1: ValType1 => Map[String, SlickData] = (newValue) => {
+        val baseList = mapGen(newValue._1)
+        val appendValue = newValue._2
+        val appendSlickData = new SlickData {
+          override val property = baseRep.proName
+          override type DataType = baseRep.T
+          override val data = appendValue
+          override val jsonEncoder = baseRep.jsonEncoder
+          override val typeTag = baseRep.valueTypeTag
+        }
+        baseList + (baseRep.proName -> appendSlickData)
       }
-      baseList + (baseRep.proName -> appendSlickData)
-    }
-    val repGen1: S => ColType1 = sourceTable => {
-      val initCols = repGen(sourceTable)
-      val newCol = baseRep.f(sourceTable)
-      initCols -> newCol
-    }
-    //val repMap1 = repMap + (baseRep.proName -> baseRep)
+      val repGen1: S => ColType1 = sourceTable => {
+        val initCols = repGen(sourceTable)
+        val newCol = baseRep.f(sourceTable)
+        initCols -> newCol
+      }
+      //val repMap1 = repMap + (baseRep.proName -> baseRep)
 
-    new SelectRep[S] {
-      override type ColType = ColType1
-      override type ValType = ValType1
-      override type TargetColType = TargetColType1
-      override val shape = shape1
-      override val listGen = listGen1
-      override val mapGen = mapGen1
-      override val repGen = repGen1
-      //override val repMap = repMap1
+      new SelectRep[S] {
+        override type ColType = ColType1
+        override type ValType = ValType1
+        override type TargetColType = TargetColType1
+        override val shape = shape1
+        override val listGen = listGen1
+        override val mapGen = mapGen1
+        override val repGen = repGen1
+        //override val repMap = repMap1
+      }
     }
   }
 }
