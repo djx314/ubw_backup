@@ -29,7 +29,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
     val resultTree = obj match {
       case Expr(s) =>
         val q"""
-          ..${ubwContentBody}
+          ..$ubwContentBody
           (..${tablesProvide}) => {$body}
         """ = s
 
