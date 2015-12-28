@@ -60,9 +60,6 @@ libraryDependencies ++= {
 }
 
 lazy val ubw = (project in file("."))
-.dependsOn(`play-caster`)
 .dependsOn(`poi-collection`)
-
-lazy val `play-caster` = (project in file("./play-caster"))
 
 lazy val `poi-collection` = (project in file("./poi-collection"))
