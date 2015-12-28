@@ -1,6 +1,3 @@
-[submodule "play-caster"]
-	path = play-caster
-	url = https://github.com/scalax/play-caster.git
 [submodule "poi-collection"]
 	path = poi-collection
 	url = https://github.com/scalax/poi-collection.git
