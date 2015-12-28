@@ -33,7 +33,11 @@ externalResolvers := Resolver.withDefaultResolvers(resolvers.value, mavenCentral
 
 libraryDependencies ++= {
   val slickVersion = "3.1.1"
+  val circeV = "0.2.1"
   Seq(
+    "io.circe" %% "circe-core" % circeV,
+    "io.circe" %% "circe-generic" % circeV,
+    "io.circe" %% "circe-parse" % circeV,
     //repl
     "com.lihaoyi" % "ammonite-repl" % "0.4.8" % "test" cross CrossVersion.full,
     //slick
