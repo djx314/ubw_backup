@@ -1,1 +1,1 @@
-"extras/npp.6.5.1/notepad++" -multiInst -notabbar -nosession -noPlugin "$*"
+"extras/npp.6.5.1/notepad++" -multiInst -notabbar -nosession -noPlugin "%*"
