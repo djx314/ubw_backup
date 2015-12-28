@@ -171,7 +171,7 @@ with OneInstancePerTest {
 
     val query = aabb.aabb(permissionTq1)
 
-    db.run(query).map(s => println(s.map(t => t.map()))).futureValue(oneSecondTimeOut)
+    db.run(query.dataGen(Nil)).map(s => println(s.map(t => t.map()))).futureValue(oneSecondTimeOut)
 
     def cc = {
       select(
@@ -205,13 +205,13 @@ with OneInstancePerTest {
 
     val query1 = ccdd.aabb(permissionTq1, catTq1)
 
-    db.run(query1).map(s => println(s.map(t => t.list()))).futureValue(oneSecondTimeOut)
+    db.run(query1.dataGen(Nil)).map(s => println(s.map(t => t.list()))).futureValue(oneSecondTimeOut)
 
     import Ubw._
 
     def dd = from {
       (permission: PermissionTable, cat: CatTable) =>
-        select(permission as "喵了个咪", permission.name as "喵", cat.wang as "十六夜的樱丘", cat as "卖了个萌")
+        org.xarcher.ubw.wrapper.select(permission as "喵了个咪", permission.name as "喵", cat.wang as "十六夜的樱丘", cat as "卖了个萌", permission.typeName as "喵喵喵")
           .where(permission.describe like "%%")
           .where(permission.describe like "%%")
           .where(cat.wang like "%%")
@@ -220,8 +220,9 @@ with OneInstancePerTest {
           .order_by(permission.describe)
     }
 
-    db.run(dd).map(s => println(s.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
-
+    db.run(dd.dataGen(Nil)).map(s => println(s.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
+    db.run(dd.dataGen(Nil)).map(s => println(s.map(t => t.list()))).futureValue(oneSecondTimeOut)
+    println(dd.properties)
 
   }
 
