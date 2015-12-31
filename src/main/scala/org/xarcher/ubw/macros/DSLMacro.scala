@@ -1,6 +1,6 @@
 package org.xarcher.ubw.macros
 
-import org.xarcher.ubw.wrapper.QueryInfo
+import org.xarcher.ubw.wrapper.{SqlWrapper, QueryInfo}
 
 import scala.reflect.macros.whitebox.Context
 import scala.language.experimental.macros
