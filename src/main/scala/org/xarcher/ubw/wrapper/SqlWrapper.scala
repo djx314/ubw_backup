@@ -133,16 +133,20 @@ trait SqlRep[S, R] {
 
 case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData])
 case class PropertyInfo(property: String, typeName: String, isHidden: Boolean, canOrder: Boolean, isDefaultDesc: Boolean)
-case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: List[(String, Boolean)] => DBIO[List[DataGen]]) {
+case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: (List[(String, Boolean)], Option[Long], Option[Long]) => DBIO[List[DataGen]]) {
 
   lazy val properties: List[PropertyInfo] = wrapper.properties
 
-  def toTableData(columnName: List[(String, Boolean)])(implicit ec: ExecutionContext): DBIO[TableData] = dataGen(columnName).map(s =>
+  def toTableData(columnName: List[(String, Boolean)], drop: Option[Long] = None, take: Option[Long] = None)(implicit ec: ExecutionContext): DBIO[TableData] = dataGen(columnName, drop, take).map(s =>
     TableData(
       properties = this.properties,
       data = s.map(t => t.map().map { case (key, value) => key -> value.toJson })
     )
   )
+
+  def toTableData(columnName: List[(String, Boolean)], drop: Long, take: Long)(implicit ec: ExecutionContext): DBIO[TableData] = {
+    toTableData(columnName, Option(drop), Option(take))
+  }
 
 }
 case class TableData(properties: List[PropertyInfo], data: List[Map[String, Json]])
@@ -208,7 +212,7 @@ case class SqlWrapper[S](
 
   def queryResult(query: Query[S, _, Seq])
     (implicit ec: ExecutionContext, ev: Query[_, repGens.ValType, Seq] => JdbcActionComponent#StreamingQueryActionExtensionMethods[Seq[repGens.ValType], repGens.ValType]): QueryInfo[S] = {
-    val dataFun = (orderColumns: List[(String, Boolean)]) => {
+    val dataFun = (orderColumns: List[(String, Boolean)], drop: Option[Long], take: Option[Long]) => {
       val filterQuery = filters.foldLeft(query)((fQuery, eachFilter) => {
         fQuery.filter(eachFilter.convert)(eachFilter.wt)
       })
@@ -228,7 +232,10 @@ case class SqlWrapper[S](
           case _ => cQuery
         }
       } }
-      paramSortQuery.map(repGens.repGen(_))(repGens.shape).result.map(s => s.toList.map(t => {
+      val baseQuery = paramSortQuery.map(repGens.repGen(_))(repGens.shape)
+      val dropQuery = drop.map(baseQuery.drop(_)).getOrElse(baseQuery)
+      val takeQuery = take.map(dropQuery.take(_)).getOrElse(dropQuery)
+      takeQuery.result.map(s => s.toList.map(t => {
         val listPre = () => repGens.listGen(t)
         val mapPre = () => repGens.mapGen(t)
         DataGen(list = listPre, map = mapPre)
