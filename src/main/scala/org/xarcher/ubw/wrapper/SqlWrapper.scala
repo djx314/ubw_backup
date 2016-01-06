@@ -131,13 +131,16 @@ trait SqlRep[S, R] {
   }
 }
 
-case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData])
+case class SlickRange(drop: Long, take: Long)
+case class SlickPage(pageIndex: Long, pageSize: Long)
+case class SlickLimit(range: Option[SlickRange] = None, page: Option[SlickPage] = None)
+case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData], sum: Long = - 1)
 case class PropertyInfo(property: String, typeName: String, isHidden: Boolean, canOrder: Boolean, isDefaultDesc: Boolean)
-case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: (List[(String, Boolean)], Option[Long], Option[Long]) => DBIO[List[DataGen]]) {
+case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: (List[(String, Boolean)], SlickLimit) => DBIO[List[DataGen]]) {
 
   lazy val properties: List[PropertyInfo] = wrapper.properties
 
-  def toTableData(columnName: List[(String, Boolean)], drop: Option[Long] = None, take: Option[Long] = None)(implicit ec: ExecutionContext): DBIO[TableData] = dataGen(columnName, drop, take).map(s =>
+  /*def toTableData(columnName: List[(String, Boolean)], limit: SlickLimit)(implicit ec: ExecutionContext): DBIO[TableData] = dataGen(columnName, drop, take).map(s =>
     TableData(
       properties = this.properties,
       data = s.map(t => t.map().map { case (key, value) => key -> value.toJson })
@@ -146,10 +149,10 @@ case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: (List[(String, Boolean)
 
   def toTableData(columnName: List[(String, Boolean)], drop: Long, take: Long)(implicit ec: ExecutionContext): DBIO[TableData] = {
     toTableData(columnName, Option(drop), Option(take))
-  }
+  }*/
 
 }
-case class TableData(properties: List[PropertyInfo], data: List[Map[String, Json]])
+case class TableData(properties: List[PropertyInfo], data: List[Map[String, Json]], sum: Long = - 1)
 
 case class SqlWrapper[S](
   select: List[SqlRep[S, _]],
@@ -212,7 +215,7 @@ case class SqlWrapper[S](
 
   def queryResult(query: Query[S, _, Seq])
     (implicit ec: ExecutionContext, ev: Query[_, repGens.ValType, Seq] => JdbcActionComponent#StreamingQueryActionExtensionMethods[Seq[repGens.ValType], repGens.ValType]): QueryInfo[S] = {
-    val dataFun = (orderColumns: List[(String, Boolean)], drop: Option[Long], take: Option[Long]) => {
+    val dataFun = (orderColumns: List[(String, Boolean)], limit: SlickLimit) => {
       val filterQuery = filters.foldLeft(query)((fQuery, eachFilter) => {
         fQuery.filter(eachFilter.convert)(eachFilter.wt)
       })

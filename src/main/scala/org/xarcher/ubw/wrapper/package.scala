@@ -36,4 +36,6 @@ package object wrapper {
 
   }
 
+  val Ubw = macros.Ubw
+
 }
