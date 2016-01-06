@@ -6,7 +6,7 @@ import slick.ast.TypedType
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 import slick.dbio._
-import slick.driver.JdbcActionComponent
+import slick.driver.{JdbcProfile, JdbcActionComponent}
 import slick.lifted._
 import scala.reflect.runtime.universe._
 
@@ -214,7 +214,10 @@ case class SqlWrapper[S](
   }
 
   def queryResult(query: Query[S, _, Seq])
-    (implicit ec: ExecutionContext, ev: Query[_, repGens.ValType, Seq] => JdbcActionComponent#StreamingQueryActionExtensionMethods[Seq[repGens.ValType], repGens.ValType]): QueryInfo[S] = {
+    (implicit
+     ec: ExecutionContext, ev: Query[_, repGens.ValType, Seq] => JdbcActionComponent#StreamingQueryActionExtensionMethods[Seq[repGens.ValType], repGens.ValType],
+     av: Rep[Int] => JdbcProfile#QueryActionExtensionMethods[Int, NoStream]
+    ): QueryInfo[S] = {
     val dataFun = (orderColumns: List[(String, Boolean)], limit: SlickLimit) => {
       val filterQuery = filters.foldLeft(query)((fQuery, eachFilter) => {
         fQuery.filter(eachFilter.convert)(eachFilter.wt)
@@ -235,14 +238,67 @@ case class SqlWrapper[S](
           case _ => cQuery
         }
       } }
+
       val baseQuery = paramSortQuery.map(repGens.repGen(_))(repGens.shape)
-      val dropQuery = drop.map(baseQuery.drop(_)).getOrElse(baseQuery)
-      val takeQuery = take.map(dropQuery.take(_)).getOrElse(dropQuery)
-      takeQuery.result.map(s => s.toList.map(t => {
-        val listPre = () => repGens.listGen(t)
-        val mapPre = () => repGens.mapGen(t)
-        DataGen(list = listPre, map = mapPre)
-      }))
+
+      limit match {
+        case SlickLimit(Some(SlickRange(drop1, take1)), Some(SlickPage(pageIndex1, pageSize1))) =>
+          val startCount = Math.max(0, drop1)
+          val pageIndex = Math.max(0, pageIndex1)
+          val pageSize = Math.max(0, pageSize1)
+
+          val dropQuery = baseQuery.drop(startCount)
+
+          (for {
+            sum <- dropQuery.size.result
+          } yield {
+            val pageStart = startCount + pageIndex * pageSize
+            val pageEnd = pageStart + pageSize
+            val endCount = Math.max(take1, startCount + sum)
+            val autalStart = Math.max(pageStart, startCount)
+            val autalEnd = Math.min(pageEnd, endCount)
+            val autalLimit = Math.max(0, autalEnd - autalStart)
+
+            val limitQuery = dropQuery.drop(pageIndex * pageSize).take(autalLimit)
+
+            limitQuery.result.map(s => s.toList.map(t => {
+              val listPre = () => repGens.listGen(t)
+              val mapPre = () => repGens.mapGen(t)
+              DataGen(list = listPre, map = mapPre, sum = s.size)
+            }))
+          })
+          .flatMap(s => s)
+        case SlickLimit(Some(SlickRange(drop, take)), None) =>
+          val dropQuery = baseQuery.drop(drop)
+          val takeQuery = dropQuery.take(take)
+
+          takeQuery.result.map(s => s.toList.map(t => {
+            val listPre = () => repGens.listGen(t)
+            val mapPre = () => repGens.mapGen(t)
+            DataGen(list = listPre, map = mapPre, sum = s.size)
+          }))
+        case SlickLimit(None, Some(SlickPage(pageIndex, pageSize))) =>
+          val dropQuery = baseQuery.drop(pageIndex * pageSize)
+          val takeQuery = dropQuery.take(pageSize)
+
+          for {
+            sum <- baseQuery.size.result
+            s <- takeQuery.result
+          } yield {
+            s.toList.map(t => {
+              val listPre = () => repGens.listGen(t)
+              val mapPre = () => repGens.mapGen(t)
+              DataGen(list = listPre, map = mapPre, sum = s.size)
+            })
+          }
+        case _ =>
+          baseQuery.result.map(s => s.toList.map(t => {
+            val listPre = () => repGens.listGen(t)
+            val mapPre = () => repGens.mapGen(t)
+            DataGen(list = listPre, map = mapPre, sum = s.size)
+          }))
+      }
+
     }
     QueryInfo(wrapper = this, dataGen = dataFun)
   }
