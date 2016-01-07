@@ -134,25 +134,27 @@ trait SqlRep[S, R] {
 case class SlickRange(drop: Long, take: Long)
 case class SlickPage(pageIndex: Long, pageSize: Long)
 case class SlickLimit(range: Option[SlickRange] = None, page: Option[SlickPage] = None)
-case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData], sum: Long = - 1)
+case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData])
+case class ResultGen(data: List[DataGen], sum: Long)
 case class PropertyInfo(property: String, typeName: String, isHidden: Boolean, canOrder: Boolean, isDefaultDesc: Boolean)
-case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: (List[(String, Boolean)], SlickLimit) => DBIO[List[DataGen]]) {
+case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: (List[(String, Boolean)], SlickLimit) => DBIO[ResultGen]) {
 
   lazy val properties: List[PropertyInfo] = wrapper.properties
 
-  /*def toTableData(columnName: List[(String, Boolean)], limit: SlickLimit)(implicit ec: ExecutionContext): DBIO[TableData] = dataGen(columnName, drop, take).map(s =>
+  def toTableData(columnName: List[(String, Boolean)], limit: SlickLimit)(implicit ec: ExecutionContext): DBIO[TableData] = dataGen(columnName, limit).map(s =>
     TableData(
       properties = this.properties,
-      data = s.map(t => t.map().map { case (key, value) => key -> value.toJson })
+      data = s.data.map(t => t.map().map { case (key, value) => key -> value.toJson }),
+      sum = s.sum
     )
   )
 
   def toTableData(columnName: List[(String, Boolean)], drop: Long, take: Long)(implicit ec: ExecutionContext): DBIO[TableData] = {
-    toTableData(columnName, Option(drop), Option(take))
-  }*/
+    toTableData(columnName, SlickLimit(range = Option(SlickRange(drop, take))))
+  }
 
 }
-case class TableData(properties: List[PropertyInfo], data: List[Map[String, Json]], sum: Long = - 1)
+case class TableData(properties: List[PropertyInfo], data: List[Map[String, Json]], sum: Long)
 
 case class SqlWrapper[S](
   select: List[SqlRep[S, _]],
@@ -261,22 +263,28 @@ case class SqlWrapper[S](
 
             val limitQuery = dropQuery.drop(pageIndex * pageSize).take(autalLimit)
 
-            limitQuery.result.map(s => s.toList.map(t => {
-              val listPre = () => repGens.listGen(t)
-              val mapPre = () => repGens.mapGen(t)
-              DataGen(list = listPre, map = mapPre, sum = s.size)
-            }))
+            limitQuery.result.map(s => {
+              val dataGen = s.toList.map(t => {
+                val listPre = () => repGens.listGen(t)
+                val mapPre = () => repGens.mapGen(t)
+                DataGen(list = listPre, map = mapPre)
+              })
+              ResultGen(dataGen, sum)
+            })
           })
           .flatMap(s => s)
         case SlickLimit(Some(SlickRange(drop, take)), None) =>
           val dropQuery = baseQuery.drop(drop)
           val takeQuery = dropQuery.take(take)
 
-          takeQuery.result.map(s => s.toList.map(t => {
-            val listPre = () => repGens.listGen(t)
-            val mapPre = () => repGens.mapGen(t)
-            DataGen(list = listPre, map = mapPre, sum = s.size)
-          }))
+          takeQuery.result.map(s => {
+            val dataGen = s.toList.map(t => {
+              val listPre = () => repGens.listGen(t)
+              val mapPre = () => repGens.mapGen(t)
+              DataGen(list = listPre, map = mapPre)
+            })
+            ResultGen(dataGen, s.size)
+          })
         case SlickLimit(None, Some(SlickPage(pageIndex, pageSize))) =>
           val dropQuery = baseQuery.drop(pageIndex * pageSize)
           val takeQuery = dropQuery.take(pageSize)
@@ -285,18 +293,22 @@ case class SqlWrapper[S](
             sum <- baseQuery.size.result
             s <- takeQuery.result
           } yield {
-            s.toList.map(t => {
+            val dataGen = s.toList.map(t => {
               val listPre = () => repGens.listGen(t)
               val mapPre = () => repGens.mapGen(t)
-              DataGen(list = listPre, map = mapPre, sum = s.size)
+              DataGen(list = listPre, map = mapPre)
             })
+            ResultGen(dataGen, sum)
           }
         case _ =>
-          baseQuery.result.map(s => s.toList.map(t => {
-            val listPre = () => repGens.listGen(t)
-            val mapPre = () => repGens.mapGen(t)
-            DataGen(list = listPre, map = mapPre, sum = s.size)
-          }))
+          baseQuery.result.map(s => {
+            val dataGen = s.toList.map(t => {
+              val listPre = () => repGens.listGen(t)
+              val mapPre = () => repGens.mapGen(t)
+              DataGen(list = listPre, map = mapPre)
+            })
+            ResultGen(dataGen, s.size)
+          })
       }
 
     }
