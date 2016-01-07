@@ -249,6 +249,9 @@ case class SqlWrapper[S](
 
       limit match {
         case SlickParam(_, Some(SlickRange(drop1, take1)), Some(SlickPage(pageIndex1, pageSize1))) =>
+
+          println(limit.toString * 100)
+
           val startCount = Math.max(0, drop1)
           val pageIndex = Math.max(0, pageIndex1)
           val pageSize = Math.max(0, pageSize1)
@@ -260,7 +263,7 @@ case class SqlWrapper[S](
           } yield {
             val pageStart = startCount + pageIndex * pageSize
             val pageEnd = pageStart + pageSize
-            val endCount = Math.max(take1, startCount + sum)
+            val endCount = Math.min(take1, startCount + sum)
             val autalStart = Math.max(pageStart, startCount)
             val autalEnd = Math.min(pageEnd, endCount)
             val autalLimit = Math.max(0, autalEnd - autalStart)
