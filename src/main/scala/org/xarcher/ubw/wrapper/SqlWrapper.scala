@@ -133,15 +133,18 @@ trait SqlRep[S, R] {
 
 case class SlickRange(drop: Long, take: Long)
 case class SlickPage(pageIndex: Long, pageSize: Long)
-case class SlickLimit(range: Option[SlickRange] = None, page: Option[SlickPage] = None)
+case class ColumnOrder(columnName: String, isDesc: Boolean)
+
+case class SlickParam(orders: List[ColumnOrder] = Nil, range: Option[SlickRange] = None, page: Option[SlickPage] = None)
+
 case class DataGen(list: () => List[SlickData], map: () => Map[String, SlickData])
 case class ResultGen(data: List[DataGen], sum: Long)
 case class PropertyInfo(property: String, typeName: String, isHidden: Boolean, canOrder: Boolean, isDefaultDesc: Boolean)
-case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: (List[(String, Boolean)], SlickLimit) => DBIO[ResultGen]) {
+case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: SlickParam => DBIO[ResultGen]) {
 
   lazy val properties: List[PropertyInfo] = wrapper.properties
 
-  def toTableData(columnName: List[(String, Boolean)], limit: SlickLimit)(implicit ec: ExecutionContext): DBIO[TableData] = dataGen(columnName, limit).map(s =>
+  def toTableData(param: SlickParam = SlickParam())(implicit ec: ExecutionContext): DBIO[TableData] = dataGen(param).map(s =>
     TableData(
       properties = this.properties,
       data = s.data.map(t => t.map().map { case (key, value) => key -> value.toJson }),
@@ -149,8 +152,9 @@ case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: (List[(String, Boolean)
     )
   )
 
-  def toTableData(columnName: List[(String, Boolean)], drop: Long, take: Long)(implicit ec: ExecutionContext): DBIO[TableData] = {
-    toTableData(columnName, SlickLimit(range = Option(SlickRange(drop, take))))
+  def toTableData(columnNames: List[(String, Boolean)], drop: Long, take: Long)(implicit ec: ExecutionContext): DBIO[TableData] = {
+    val orders = columnNames.map(s => ColumnOrder(columnName = s._1, isDesc = s._2))
+    toTableData(SlickParam(orders = orders, range = Option(SlickRange(drop, take))))
   }
 
 }
@@ -220,14 +224,14 @@ case class SqlWrapper[S](
      ec: ExecutionContext, ev: Query[_, repGens.ValType, Seq] => JdbcActionComponent#StreamingQueryActionExtensionMethods[Seq[repGens.ValType], repGens.ValType],
      av: Rep[Int] => JdbcProfile#QueryActionExtensionMethods[Int, NoStream]
     ): QueryInfo[S] = {
-    val dataFun = (orderColumns: List[(String, Boolean)], limit: SlickLimit) => {
+    val dataFun = (limit: SlickParam) => {
       val filterQuery = filters.foldLeft(query)((fQuery, eachFilter) => {
         fQuery.filter(eachFilter.convert)(eachFilter.wt)
       })
       val codeSortQuery = orders.foldLeft(filterQuery)((fQuery, eachOrder) => {
         fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
       })
-      val paramSortQuery = orderColumns.foldLeft(codeSortQuery) { case (cQuery, (eachOrderName, eachIsDesc)) => {
+      val paramSortQuery = limit.orders.foldLeft(codeSortQuery) { case (cQuery, ColumnOrder(eachOrderName, eachIsDesc)) => {
         orderMap.get(eachOrderName) match {
           case Some(sqlOrder) =>
             cQuery.sortBy(table1 => {
@@ -244,7 +248,7 @@ case class SqlWrapper[S](
       val baseQuery = paramSortQuery.map(repGens.repGen(_))(repGens.shape)
 
       limit match {
-        case SlickLimit(Some(SlickRange(drop1, take1)), Some(SlickPage(pageIndex1, pageSize1))) =>
+        case SlickParam(_, Some(SlickRange(drop1, take1)), Some(SlickPage(pageIndex1, pageSize1))) =>
           val startCount = Math.max(0, drop1)
           val pageIndex = Math.max(0, pageIndex1)
           val pageSize = Math.max(0, pageSize1)
@@ -273,7 +277,7 @@ case class SqlWrapper[S](
             })
           })
           .flatMap(s => s)
-        case SlickLimit(Some(SlickRange(drop, take)), None) =>
+        case SlickParam(_, Some(SlickRange(drop, take)), None) =>
           val dropQuery = baseQuery.drop(drop)
           val takeQuery = dropQuery.take(take)
 
@@ -285,7 +289,7 @@ case class SqlWrapper[S](
             })
             ResultGen(dataGen, s.size)
           })
-        case SlickLimit(None, Some(SlickPage(pageIndex, pageSize))) =>
+        case SlickParam(_, None, Some(SlickPage(pageIndex, pageSize))) =>
           val dropQuery = baseQuery.drop(pageIndex * pageSize)
           val takeQuery = dropQuery.take(pageSize)
 
