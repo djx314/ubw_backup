@@ -175,7 +175,21 @@ case class SqlWrapper[S](
     this.copy(filters = filter1 :: this.filters)
   }
 
+  def where_if_ext[R <: Rep[_] : CanBeQueryCondition](need: Boolean)(f: S => R): SqlWrapper[S] = {
+    if (need) {
+      val filter1 = new SqlFilter[S] {
+        override type ResultType = R
+        override val wt = implicitly[CanBeQueryCondition[ResultType]]
+        override val convert = f
+      }
+      this.copy(filters = filter1 :: this.filters)
+    } else
+      this
+  }
+
   def where[R <: Rep[_] : CanBeQueryCondition](f: R): SqlWrapper[S] = ???
+
+  def where_if[R <: Rep[_] : CanBeQueryCondition](need: Boolean)(f: R): SqlWrapper[S] = ???
 
   def order_by_ext[K](f: S => K)(implicit wtImplicit: K => Ordered): SqlWrapper[S] = {
     val order1 = new SqlOrder[S] {
@@ -186,7 +200,21 @@ case class SqlWrapper[S](
     this.copy(orders = order1 :: this.orders)
   }
 
+  def order_by_if_ext[K](need: Boolean)(f: S => K)(implicit wtImplicit: K => Ordered): SqlWrapper[S] = {
+    if (need) {
+      val order1 = new SqlOrder[S] {
+        override type RepType = K
+        override val wt = wtImplicit
+        override val convert = f
+      }
+      this.copy(orders = order1 :: this.orders)
+    } else
+      this
+  }
+
   def order_by[K](f: K)(implicit wtImplicit: K => Ordered): SqlWrapper[S] = ???
+
+  def order_by_if[K](need: Boolean)(f: K)(implicit wtImplicit: K => Ordered): SqlWrapper[S] = ???
 
   lazy val repGens = {
     select.filter(s => ! s.isHidden) match {
