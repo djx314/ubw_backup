@@ -58,6 +58,20 @@ trait SqlOrder[S] {
 
 }
 
+trait SqlGroupBy[S] {
+
+  type RepType
+  type TableType = S
+  type T
+  type G
+  //type P
+  val convert: TableType => RepType
+
+  val kshape: Shape[_ <: FlatShapeLevel, RepType, T, G]
+  val vshape: Shape[_ <: FlatShapeLevel, TableType, _, TableType]
+
+}
+
 trait SqlRep[S, R] {
   //type +RepType = R
   type T
@@ -163,7 +177,8 @@ case class TableData(properties: List[PropertyInfo], data: List[Map[String, Json
 case class SqlWrapper[S](
   select: List[SqlRep[S, _]],
   filters: List[SqlFilter[S]] = Nil,
-  orders: List[SqlOrder[S]] = Nil
+  orders: List[SqlOrder[S]] = Nil,
+  groupBy: Option[SqlGroupBy[S]] = None
 ) {
 
   def where_ext[R <: Rep[_] : CanBeQueryCondition](f: S => R): SqlWrapper[S] = {
@@ -216,6 +231,23 @@ case class SqlWrapper[S](
 
   def order_by_if[K](need: Boolean)(f: K)(implicit wtImplicit: K => Ordered): SqlWrapper[S] = ???
 
+  def group_by_ext[K1, T1, G1](f: S => K1)(implicit kshape1: Shape[_ <: FlatShapeLevel, K1, T1, G1], vshape1: Shape[_ <: FlatShapeLevel, S, _, S]): SqlWrapper[S] = {
+    val groupBy1 = new SqlGroupBy[S] {
+      override type RepType = K1
+      override type T = T1
+      override type G = G1
+
+      override val convert = f
+
+      override val kshape = kshape1
+      override val vshape = vshape1
+
+    }
+    this.copy(groupBy = Option(groupBy1))
+  }
+
+  def group_by[K1, T1, G1](f: K1)(implicit kshape1: Shape[_ <: FlatShapeLevel, K1, T1, G1]): SqlWrapper[S] = ???
+
   lazy val repGens = {
     select.filter(s => ! s.isHidden) match {
       case head :: tail =>
@@ -256,6 +288,11 @@ case class SqlWrapper[S](
       val filterQuery = filters.foldLeft(query)((fQuery, eachFilter) => {
         fQuery.filter(eachFilter.convert)(eachFilter.wt)
       })
+
+      /*val groupByQuery = groupBys.foldLeft(filterQuery)((fQuery, eachGroupBy) => {
+        fQuery.groupBy(eachGroupBy.convert)(eachGroupBy.kshape, eachGroupBy.vshape).flatMap { case (key, valueQuery) => valueQuery }
+      })*/
+
       val codeSortQuery = orders.foldLeft(filterQuery)((fQuery, eachOrder) => {
         fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
       })
@@ -273,7 +310,13 @@ case class SqlWrapper[S](
         }
       } }
 
-      val baseQuery = paramSortQuery.map(repGens.repGen(_))(repGens.shape)
+      val baseQuery = groupBy match {
+        case Some(eachGroupBy) =>
+          paramSortQuery.groupBy(eachGroupBy.convert)(eachGroupBy.kshape, eachGroupBy.vshape).flatMap { case (key, valueQuery) => valueQuery.map(repGens.repGen(_))(repGens.shape) }
+        case _ => paramSortQuery.map(repGens.repGen(_))(repGens.shape)
+      }
+
+      //val baseQuery = paramSortQuery.map(repGens.repGen(_))(repGens.shape)
 
       limit match {
         case SlickParam(_, Some(SlickRange(drop1, take1)), Some(SlickPage(pageIndex1, pageSize1))) =>

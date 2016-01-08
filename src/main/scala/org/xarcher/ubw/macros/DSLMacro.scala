@@ -56,24 +56,29 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
         val functionTransformer = new Transformer {
           override def transform(tree: Tree): Tree = {
             tree match {
-              case q"""${x1}.where[${x2}](${x3})(${x4})""" =>
+              case q"""$x1.where[$x2]($x3)($x4)""" =>
                 val nameConvert = convert(x3)
                 val aa = q"""$x1.where_ext { $nameConvert }"""
                 this.transform((aa))
 
-              case q"""${x1}.where_if[${x2}](${needParam})(${x3})(${x4})""" =>
+              case q"""$x1.where_if[$x2]($needParam)($x3)($x4)""" =>
                 val nameConvert = convert(x3)
-                val aa = q"""$x1.where_if_ext(${needParam}) { $nameConvert }"""
+                val aa = q"""$x1.where_if_ext($needParam) { $nameConvert }"""
                 this.transform((aa))
 
-              case q"""${x1}.order_by[${x2}](${x3})(${x4})""" =>
+              case q"""$x1.order_by[$x2]($x3)($x4)""" =>
                 val nameConvert = convert(x3)
                 val aa = q"""$x1.order_by_ext { $nameConvert }"""
                 this.transform((aa))
 
-              case q"""${x1}.order_by_if[${x2}](${needParam})(${x3})(${x4})""" =>
+              case q"""$x1.order_by_if[$x2]($needParam)($x3)($x4)""" =>
                 val nameConvert = convert(x3)
-                val aa = q"""$x1.order_by_if_ext(${needParam}) { $nameConvert }"""
+                val aa = q"""$x1.order_by_if_ext($needParam) { $nameConvert }"""
+                this.transform((aa))
+
+              case q"""$x1.group_by[..$x2]($x3)($x4)""" =>
+                val nameConvert = convert(x3)
+                val aa = q"""$x1.group_by_ext { $nameConvert }"""
                 this.transform((aa))
 
               case q"""org.xarcher.ubw.wrapper.select.apply[..${_}](..$columns)""" =>
