@@ -208,7 +208,9 @@ with OneInstancePerTest {
       //.sortBy { case (cat, permission) => cat.wang }
       .groupBy { case (cat, permission) => permission.name }.map { case ( cat, eachQuery) =>
         eachQuery.map { case (cat, permission) => cat.id }.sum -> eachQuery.map { case (cat, permission) => permission.id }.avg
-      }.result
+      }
+      .sortBy(_._1)
+      .result
     }.futureValue(oneSecondTimeOut))
 
     println("22" * 100)
@@ -238,7 +240,7 @@ with OneInstancePerTest {
           .where_if(2 == 3) { cat.wang === permission.name }
           //.order_by(cat.wang)
           //.order_by_if(2333 == 2333)(permission.describe)
-          .group_by(permission.name)
+          //.group_by(permission.name)
     }
 
     db.run(dd.dataGen(SlickParam())).map(s => println(s.data.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)

@@ -40,12 +40,12 @@ trait SqlFilter[S] {
 
 }
 
-trait SqlRepOrder[S] {
+trait SqlRepOrder[ValType] {
 
-  type ValType
-  type TableType = S
+  //type ValType
+  //type TableType = S
   val wt: Rep[ValType] => ColumnOrdered[ValType]
-  val convert: TableType => Rep[ValType]
+  //val convert: TableType => Rep[ValType]
 
 }
 
@@ -64,7 +64,7 @@ trait SqlGroupBy[S] {
   type TableType = S
   type T
   type G
-  //type P
+
   val convert: TableType => RepType
 
   val kshape: Shape[_ <: FlatShapeLevel, RepType, T, G]
@@ -72,29 +72,119 @@ trait SqlGroupBy[S] {
 
 }
 
-trait SqlRep[S, R] {
-  //type +RepType = R
+sealed trait SqlRepBase[S, R] {
+
   type T
   type G
   val proName: String
   val isHidden: Boolean
   val isDefaultDesc: Boolean
-  val f: S => R
   val shape: Shape[_ <: FlatShapeLevel, R, T, G]
   val valueTypeTag: WeakTypeTag[T]
   val jsonEncoder: Encoder[T]
   /**
     * 如果同时拥有 orderTarget 和 ordereImplicit，以 orderTarget 为先
     */
-  val orderTarget: Option[String] = None
-  val sqlOrder: Option[SqlRepOrder[S]] = None
+  val orderTargetName: Option[String] = None
+  val sqlOrder: Option[SqlRepOrder[R]] = None
 
-  def hidden(isHidden: Boolean = this.isHidden): SqlRep[S, R] = {
+  def hidden(isHidden: Boolean = this.isHidden): this.type
+
+  def order[K](isDefaultDesc: Boolean)(implicit columnGen: R <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K], typeTypedK: TypedType[K]): this.type
+
+  def orderTarget(targetName: String, isDefaultDesc: Boolean): this.type
+
+}
+
+trait SqlRep[S, R] extends SqlRepBase[S, R] {
+
+  //type T
+  //type G
+  //val proName: String
+  //val isHidden: Boolean
+  //val isDefaultDesc: Boolean
+  //val f: S => R
+  //val shape: Shape[_ <: FlatShapeLevel, R, T, G]
+  //val valueTypeTag: WeakTypeTag[T]
+  //val jsonEncoder: Encoder[T]
+  /**
+    * 如果同时拥有 orderTarget 和 ordereImplicit，以 orderTarget 为先
+    */
+  //val orderTarget: Option[String] = None
+  //val sqlOrder: Option[SqlRepOrder[S]] = None
+
+  val f: S => R
+
+  override def hidden(isHidden: Boolean = this.isHidden): this.type = {
     val isHidden1 = isHidden
     this.copy(isHidden = isHidden1)
   }
 
-  def order[K](isDefaultDesc: Boolean)(implicit columnGen: R <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K], typeTypedK: TypedType[K]): SqlRep[S, R] = {
+  override def order[K](isDefaultDesc: Boolean)(implicit columnGen: R <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K], typeTypedK: TypedType[K]): this.type = {
+    val convert1: S => Rep[K] = table =>
+      f(table)
+    val isDefaultDesc1 = isDefaultDesc
+    val sqlOrder1 = new SqlRepOrder[R] {
+      //override type ValType = K
+      override val wt = wtImplicit
+      //override val convert = convert1
+    }
+    this.copy(sqlOrder = Option(sqlOrder1), isDefaultDesc = isDefaultDesc1)
+  }
+
+  override def orderTarget(targetName: String, isDefaultDesc: Boolean): this.type = {
+    val targetName1 = targetName
+    val isDefaultDesc1 = isDefaultDesc
+    this.copy(orderTargetName = Option(targetName1), isDefaultDesc = isDefaultDesc1)
+  }
+
+  def copy(proName: String = this.proName, isHidden: Boolean = this.isHidden, isDefaultDesc: Boolean = this.isDefaultDesc, f: S => R = this.f,
+           orderTargetName: Option[String] = this.orderTargetName, sqlOrder: Option[SqlRepOrder[R]] = this.sqlOrder): this.type = {
+    type R1 = R
+    type T1 = T
+    type G1 = G
+    val proName1 = proName
+    val isHidden1 = isHidden
+    val isDefaultDesc1 = isDefaultDesc
+    val f1 = f
+    val shape1 = this.shape
+    val valueTypeTag1 = this.valueTypeTag
+    val jsonEncoder1 = this.jsonEncoder
+    val orderTargetName1 = orderTargetName
+    val sqlOrder1 = sqlOrder
+    new SqlRep[S, R] {
+      override type T = T1
+      override type G = G1
+      override val proName = proName1
+      override val isHidden = isHidden1
+      override val isDefaultDesc = isDefaultDesc1
+      override val f = f1
+      override val shape = shape1
+      override val valueTypeTag = valueTypeTag1
+      override val jsonEncoder = jsonEncoder1
+      override val orderTargetName = orderTargetName1
+      override val sqlOrder = sqlOrder1
+    }.asInstanceOf[this.type]
+  }
+
+}
+
+/*trait SqlQRep[S, R] extends SqlRepBase[S, R] {
+
+  type U
+  type B
+  type W
+
+  val f: S => U
+  val ushape: Shape[_ <: FlatShapeLevel, U, B, W]
+  val e: Query[U, _, Seq]
+
+  override def hidden(isHidden: Boolean = this.isHidden): this.type = {
+    val isHidden1 = isHidden
+    this.copy(isHidden = isHidden1)
+  }
+
+  override def order[K](isDefaultDesc: Boolean)(implicit columnGen: R <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K], typeTypedK: TypedType[K]): this.type = {
     val convert1: S => Rep[K] = table =>
       f(table)
     val isDefaultDesc1 = isDefaultDesc
@@ -106,16 +196,18 @@ trait SqlRep[S, R] {
     this.copy(sqlOrder = Option(sqlOrder1), isDefaultDesc = isDefaultDesc1)
   }
 
-  def orderTarget(targetName: String, isDefaultDesc: Boolean): SqlRep[S, R] = {
+  override def orderTarget(targetName: String, isDefaultDesc: Boolean): this.type = {
     val targetName1 = targetName
     val isDefaultDesc1 = isDefaultDesc
-    this.copy(orderTarget = Option(targetName1), isDefaultDesc = isDefaultDesc1)
+    this.copy(orderTargetName = Option(targetName1), isDefaultDesc = isDefaultDesc1)
   }
 
-  //def order11111111(isDefaultDesc: Boolean): SqlRep[S, R] = ???
-
   def copy(proName: String = this.proName, isHidden: Boolean = this.isHidden, isDefaultDesc: Boolean = this.isDefaultDesc, f: S => R = this.f,
-           orderTarget: Option[String] = this.orderTarget, sqlOrder: Option[SqlRepOrder[S]] = this.sqlOrder): SqlRep[S, R] = {
+           orderTargetName: Option[String] = this.orderTargetName, sqlOrder: Option[SqlRepOrder[S]] = this.sqlOrder): this.type = {
+    type U1 = U
+    type B1 = B
+    type W1 = W
+
     type R1 = R
     type T1 = T
     type G1 = G
@@ -123,27 +215,39 @@ trait SqlRep[S, R] {
     val isHidden1 = isHidden
     val isDefaultDesc1 = isDefaultDesc
     val f1 = f
+
+    val ushape1 = ushape
+    val e1 = e
+
     val shape1 = this.shape
     val valueTypeTag1 = this.valueTypeTag
     val jsonEncoder1 = this.jsonEncoder
-    val orderTarget1 = orderTarget
+    val orderTargetName1 = orderTargetName
     val sqlOrder1 = sqlOrder
-    new SqlRep[S, R] {
-      //override type R = R1
+    new SqlQRep[S, R] {
+      override type U = U1
+      override type B = B1
+      override type W = W1
+
       override type T = T1
       override type G = G1
       override val proName = proName1
       override val isHidden = isHidden1
       override val isDefaultDesc = isDefaultDesc1
       override val f = f1
+
+      override val ushape = ushape1
+      override val e = e1
+
       override val shape = shape1
       override val valueTypeTag = valueTypeTag1
       override val jsonEncoder = jsonEncoder1
-      override val orderTarget = orderTarget1
+      override val orderTargetName = orderTargetName1
       override val sqlOrder = sqlOrder1
-    }
+    }.asInstanceOf[this.type]
   }
-}
+
+}*/
 
 case class SlickRange(drop: Long, take: Long)
 case class SlickPage(pageIndex: Long, pageSize: Long)
@@ -271,8 +375,8 @@ case class SqlWrapper[S](
     }.toMap
     //对 targetName 不为空的列进行转化
     select.collect {
-      case s if s.orderTarget.isDefined =>
-        s.proName -> s.orderTarget.get
+      case s if s.orderTargetName.isDefined =>
+        s.proName -> s.orderTargetName.get
     }.foldLeft(strSqlOrderMap) { case (eachMap, (eachPro, eachTarget)) => {
       val plusItem = eachPro -> eachMap.get(eachTarget).getOrElse(throw new Exception("targetName: $eachTarget 对应的列没有被排序"))
       eachMap + plusItem
