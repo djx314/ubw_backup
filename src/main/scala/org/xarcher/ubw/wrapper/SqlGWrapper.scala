@@ -9,8 +9,8 @@ import slick.dbio._
 import slick.driver.{JdbcProfile, JdbcActionComponent}
 import slick.lifted._
 
-case class SqlWrapper[S](
-  select: List[SqlRep[S, _, _, _]],
+case class SqlGWrapper[S](
+  select: List[SqlGRep[S, _, _, _]],
   filters: List[SqlFilter[S]] = Nil,
   orders: List[SqlOrder[S]] = Nil,
   groupBy: Option[SqlGroupBy[S]] = None
@@ -85,9 +85,9 @@ case class SqlWrapper[S](
 
   lazy val repGens = {
     //暂时隐藏 filter，估计以后也不会再开了
-    select/*.filter(s => ! s.isHidden)*/match {
+    select/*.filter(s => ! s.isHidden)*/ match {
       case head :: tail =>
-        tail.foldLeft(SelectRep.head(head))((repGen, eachSelect) => {
+        tail.foldLeft(SelectGRep.head(head))((repGen, eachSelect) => {
           repGen.append(eachSelect)
         })
       case _ =>
@@ -123,13 +123,12 @@ case class SqlWrapper[S](
         fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
       })
 
-      val baseQuery =
-      //groupBy match {
-        //case Some(eachGroupBy) =>
-          //codeSortQuery.groupBy(eachGroupBy.convert)(eachGroupBy.kshape, eachGroupBy.vshape).flatMap { case (key, valueQuery) => valueQuery.map(repGens.repGen(_))(repGens.shape) }
-        //case _ =>
-        {
-          val resultQuery = codeSortQuery.map(repGens.repGen(_))(repGens.shape)
+      val baseQuery = groupBy match {
+        case Some(eachGroupBy) =>
+          codeSortQuery.groupBy(eachGroupBy.convert)(eachGroupBy.kshape, eachGroupBy.vshape).map { case (key, valueQuery) => repGens.queryGen(valueQuery) }(repGens.shape)
+        case _ =>
+          throw new Exception("你猫了个咪写了个 groupby 又不用 groupby")
+          /*val resultQuery = codeSortQuery.map(repGens.repGen(_))(repGens.shape)
           limit.orders.foldLeft(resultQuery) { case (eachQuery, ColumnOrder(eachOrderName, eachIsDesc)) =>
             orderMap.get(eachOrderName) match {
               case Some(convert) =>
@@ -143,9 +142,8 @@ case class SqlWrapper[S](
               case _ =>
                 eachQuery
             }
-          }
-        }
-      //}
+          }*/
+      }
 
       limit match {
         case SlickParam(_, Some(SlickRange(drop1, take1)), Some(SlickPage(pageIndex1, pageSize1))) =>
@@ -221,29 +219,29 @@ case class SqlWrapper[S](
 
 }
 
-object select {
+object gselect {
 
-  def apply[S](columns: SqlRep[S, _, _, _]*) = {
-    SqlWrapper(
+  def apply[S](columns: SqlGRep[S, _, _, _]*) = {
+    SqlGWrapper(
       select = columns.toList
     )
   }
 
 }
 
-trait SelectRep[S] {
+trait SelectGRep[S] {
   type ColType
   type ValType
   type TargetColType
   val shape: Shape[_ <: FlatShapeLevel, ColType, ValType, TargetColType]
   val listGen: ValType => List[SlickData]
   val mapGen: ValType => Map[String, SlickData]
-  val repGen: S => ColType
+  val queryGen: Query[S, _, Seq] => ColType
   val orderGen: Map[String, TargetColType => ColumnOrdered[_]]
 
-  def append[RT, G1, T1](baseRep: SqlRep[S, RT, G1, T1]): SelectRep[S] = {
+  def append[RT, G1, T1](baseRep: SqlGRep[S, RT, G1, T1]): SelectGRep[S] = {
     type ColType1 = (ColType, RT)
-    type ValType1 = (ValType, T1/*baseRep.T*/)
+    type ValType1 = (ValType, T1)
     type TargetColType1 = (TargetColType, G1)
     val shape1 = new TupleShape[FlatShapeLevel, ColType1, ValType1, TargetColType1](shape, baseRep.shape)
     val listGen1: ValType1 => List[SlickData] = (newValue) => {
@@ -251,7 +249,7 @@ trait SelectRep[S] {
       val appendValue = newValue._2
       val appendSlickData = new SlickData {
         override val property = baseRep.proName
-        override type DataType = T1/*baseRep.T*/
+        override type DataType = T1
         override val data = appendValue
         override val jsonEncoder = baseRep.jsonEncoder
         override val typeTag = baseRep.valueTypeTag
@@ -263,16 +261,16 @@ trait SelectRep[S] {
       val appendValue = newValue._2
       val appendSlickData = new SlickData {
         override val property = baseRep.proName
-        override type DataType = T1/*baseRep.T*/
+        override type DataType = T1
         override val data = appendValue
         override val jsonEncoder = baseRep.jsonEncoder
         override val typeTag = baseRep.valueTypeTag
       }
       baseList + (baseRep.proName -> appendSlickData)
     }
-    val repGen1: S => ColType1 = sourceTable => {
-      val initCols = repGen(sourceTable)
-      val newCol = baseRep.f(sourceTable)
+    val queryGen1: Query[S, _, Seq] => ColType1 = sourceQuery => {
+      val initCols = queryGen(sourceQuery)
+      val newCol = baseRep.queryToRep(sourceQuery)
       initCols -> newCol
     }
     val orderGen1: Map[String, TargetColType1 => ColumnOrdered[_]] = {
@@ -295,27 +293,27 @@ trait SelectRep[S] {
       .getOrElse(oldMap)
     }
 
-    new SelectRep[S] {
+    new SelectGRep[S] {
       override type ColType = ColType1
       override type ValType = ValType1
       override type TargetColType = TargetColType1
       override val shape = shape1
       override val listGen = listGen1
       override val mapGen = mapGen1
-      override val repGen = repGen1
+      override val queryGen = queryGen1
       override val orderGen = orderGen1
     }
   }
 }
 
-object SelectRep {
+object SelectGRep {
 
-  def head[S, RT, G1, T1](baseRep: SqlRep[S, RT, G1, T1]): SelectRep[S] = {
-    new SelectRep[S] {
+  def head[S, RT, G1, T1](baseRep: SqlGRep[S, RT, G1, T1]): SelectGRep[S] = {
+    new SelectGRep[S] {
       override type ColType = Tuple1[RT]
       override type ValType = Tuple1[T1]
       override type TargetColType = Tuple1[G1]
-      override val shape = new TupleShape[FlatShapeLevel, Tuple1[RT], Tuple1[T1/*baseRep.T*/], Tuple1[G1]](baseRep.shape)
+      override val shape = new TupleShape[FlatShapeLevel, Tuple1[RT], Tuple1[T1], Tuple1[G1]](baseRep.shape)
       override val listGen = (baseVal: ValType) => {
         val initValue = new SlickData {
           override val property = baseRep.proName
@@ -336,8 +334,8 @@ object SelectRep {
         }
         Map(baseRep.proName -> initValue)
       }
-      override val repGen = (baseTable: S) => {
-        Tuple1(baseRep.f(baseTable))
+      override val queryGen = (baseQuery: Query[S, _, Seq]) => {
+        Tuple1(baseRep.queryToRep(baseQuery))
       }
       override val orderGen = {
         (for {

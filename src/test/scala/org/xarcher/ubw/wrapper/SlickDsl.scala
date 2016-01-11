@@ -260,11 +260,11 @@ with OneInstancePerTest {
     println(dd.properties)
 
     //test
-    val ee = ((table1: PermissionTable) => {
+    ((table1: PermissionTable) => {
       table1.typeName
-    }) as_ext "喵了个咪"
-    val ff = ee.asQ
-    ff(_.sum)
+    }) as_ext "喵了个咪" asQ((aaRep: Query[Rep[Option[String]], Option[String], Seq]) => {
+      aaRep.sum
+    })
 
   }
 
