@@ -237,6 +237,7 @@ with OneInstancePerTest {
           permission as "喵了个咪",
           permission.name as "喵" order true,
           cat.wang as "十六夜的樱丘" order true,
+          cat.id as "你妹",
           cat as "卖了个萌",
           permission.typeName as "喵喵喵" order true
         )
@@ -249,12 +250,21 @@ with OneInstancePerTest {
         //.group_by(permission.name)
     }
 
+    catTq1.map(_.id).sum
+
     db.run(dd.dataGen(SlickParam())).map(s => println(s.data.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
 
     println("33" * 100)
     db.run(dd.dataGen(SlickParam(orders = ColumnOrder("喵喵喵", true) :: ColumnOrder("十六夜的樱丘", true) :: Nil))).map(s => println(s.data.map(t => t.list()))).futureValue(oneSecondTimeOut)
     println("44" * 100)
     println(dd.properties)
+
+    //test
+    val ee = ((table1: PermissionTable) => {
+      table1.typeName
+    }) as_ext "喵了个咪"
+    val ff = ee.asQ
+    ff(_.sum)
 
   }
 
