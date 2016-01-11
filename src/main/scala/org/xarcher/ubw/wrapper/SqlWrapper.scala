@@ -44,7 +44,6 @@ trait SqlRepOrder[TargetType] {
 
   type RepType
   val typeConvert: TargetType <:< Rep[RepType]
-  val typeTyped: TypedType[RepType]
   val wt: Rep[RepType] => ColumnOrdered[RepType]
 
 }
@@ -90,7 +89,7 @@ sealed trait SqlRepBase[S, R, G] {
 
   def hidden(isHidden: Boolean = this.isHidden): this.type
 
-  def order[K](isDefaultDesc: Boolean)(implicit columnGen: G <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K], typeTypedK: TypedType[K]): this.type
+  def order[K](isDefaultDesc: Boolean)(implicit columnGen: G <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K]): this.type
 
   def orderTarget(targetName: String, isDefaultDesc: Boolean): this.type
 
@@ -105,12 +104,11 @@ trait SqlRep[S, R, G] extends SqlRepBase[S, R, G] {
     this.copy(isHidden = isHidden1)
   }
 
-  override def order[K](isDefaultDesc: Boolean)(implicit columnGen: G <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K], typeTypedK: TypedType[K]): this.type = {
+  override def order[K](isDefaultDesc: Boolean)(implicit columnGen: G <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K]): this.type = {
     val isDefaultDesc1 = isDefaultDesc
     val sqlOrder1 = new SqlRepOrder[G] {
       override type RepType = K
       override val typeConvert = columnGen
-      override val typeTyped = typeTypedK
       override val wt = wtImplicit
     }
     this.copy(sqlOrder = Option(sqlOrder1), isDefaultDesc = isDefaultDesc1)
@@ -400,7 +398,7 @@ case class SqlWrapper[S](
           limit.orders.foldLeft(resultQuery) { case (eachQuery, ColumnOrder(eachOrderName, eachIsDesc)) =>
             orderMap.get(eachOrderName) match {
               case Some(convert) =>
-                resultQuery.sortBy(s => {
+                eachQuery.sortBy(s => {
                   val colOrder = convert(s)
                   if (eachIsDesc)
                     colOrder.desc.nullsLast
@@ -408,7 +406,7 @@ case class SqlWrapper[S](
                     colOrder.asc.nullsLast
                 })
               case _ =>
-                resultQuery
+                eachQuery
             }
           }
       }
@@ -559,6 +557,7 @@ trait SelectRep[S] {
       } yield {
         val newConvert: TargetColType1 => ColumnOrdered[_] = {
           case (currentTargetCol, newCol) =>
+            println(baseRep.proName -> sqlOrder.typeConvert(newCol).toString)
             sqlOrder.wt(sqlOrder.typeConvert(newCol))
         }
         oldMap + (baseRep.proName -> newConvert)
