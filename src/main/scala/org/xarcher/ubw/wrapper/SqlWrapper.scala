@@ -335,7 +335,8 @@ case class SqlWrapper[S](
   def group_by[K1, T1, G1](f: K1)(implicit kshape1: Shape[_ <: FlatShapeLevel, K1, T1, G1]): SqlWrapper[S] = ???
 
   lazy val repGens = {
-    select.filter(s => ! s.isHidden) match {
+    //暂时隐藏 filter，估计以后也不会再开了
+    select/*.filter(s => ! s.isHidden)*/ match {
       case head :: tail =>
         tail.foldLeft(SelectRep.head(head))((repGen, eachSelect) => {
           repGen.append(eachSelect)
@@ -351,7 +352,7 @@ case class SqlWrapper[S](
     select.foldLeft(repGens.orderGen)((orderGen, eachSelect) => {
       eachSelect.orderTargetName match {
         case Some(targetName) =>
-          val plusItem = targetName -> orderGen.get(targetName).getOrElse(throw new Exception("targetName: $targetName 对应的列没有被排序"))
+          val plusItem = eachSelect.proName -> orderGen.get(targetName).getOrElse(throw new Exception(s"targetName: $targetName 对应的列没有被排序"))
           orderGen + plusItem
         case _ =>
           orderGen
@@ -369,26 +370,9 @@ case class SqlWrapper[S](
         fQuery.filter(eachFilter.convert)(eachFilter.wt)
       })
 
-      /*val groupByQuery = groupBys.foldLeft(filterQuery)((fQuery, eachGroupBy) => {
-        fQuery.groupBy(eachGroupBy.convert)(eachGroupBy.kshape, eachGroupBy.vshape).flatMap { case (key, valueQuery) => valueQuery }
-      })*/
-
       val codeSortQuery = orders.foldLeft(filterQuery)((fQuery, eachOrder) => {
         fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
       })
-      /*val paramSortQuery = limit.orders.foldLeft(codeSortQuery) { case (cQuery, ColumnOrder(eachOrderName, eachIsDesc)) => {
-        orderMap.get(eachOrderName) match {
-          case Some(sqlOrder) =>
-            cQuery.sortBy(table1 => {
-              val orderedColumn = sqlOrder.wt(sqlOrder.convert(table1))
-              if (eachIsDesc)
-                orderedColumn.desc.nullsLast
-              else
-                orderedColumn.asc.nullsLast
-            })
-          case _ => cQuery
-        }
-      } }*/
 
       val baseQuery = groupBy match {
         case Some(eachGroupBy) =>
@@ -411,13 +395,8 @@ case class SqlWrapper[S](
           }
       }
 
-      //val baseQuery = paramSortQuery.map(repGens.repGen(_))(repGens.shape)
-
       limit match {
         case SlickParam(_, Some(SlickRange(drop1, take1)), Some(SlickPage(pageIndex1, pageSize1))) =>
-
-          println(limit.toString * 100)
-
           val startCount = Math.max(0, drop1)
           val pageIndex = Math.max(0, pageIndex1)
           val pageSize = Math.max(0, pageSize1)
@@ -557,7 +536,6 @@ trait SelectRep[S] {
       } yield {
         val newConvert: TargetColType1 => ColumnOrdered[_] = {
           case (currentTargetCol, newCol) =>
-            println(baseRep.proName -> sqlOrder.typeConvert(newCol).toString)
             sqlOrder.wt(sqlOrder.typeConvert(newCol))
         }
         oldMap + (baseRep.proName -> newConvert)
