@@ -9,7 +9,7 @@ import scala.language.experimental.macros
   * Created by djx314 on 15-5-16.
   */
 object Ubw {
-  def from[S](obj: Any): QueryInfo[S] = macro UbwMacroImpl.impl[S]
+  def from[S](obj: Any): QueryInfo = macro UbwMacroImpl.impl
 }
 
 class UbwMacroImpl(override val c: Context) extends MacroUtils {
@@ -27,7 +27,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
     }
   }
 
-  def impl[S](obj: c.Expr[Any]): c.Expr[QueryInfo[S]] = {
+  def impl(obj: c.Expr[Any]): c.Expr[QueryInfo] = {
     val resultTree = obj match {
       case Expr(s) =>
         val q"""

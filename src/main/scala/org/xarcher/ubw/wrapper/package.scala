@@ -15,9 +15,6 @@ package object wrapper {
 
     def as_ext[T1 : WeakTypeTag, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1], jsonEncoder1: Encoder[T1]): SqlRep[S1, R1, G1, T1] = {
       new SqlRep[S1, R1, G1, T1] {
-        //override type R = R1
-        //override type T = T1
-        //override type G = G1
         override val valueTypeTag = implicitly[WeakTypeTag[T1]]
         override val proName = columnName
         override val isHidden = false
