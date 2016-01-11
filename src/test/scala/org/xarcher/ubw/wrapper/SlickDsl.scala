@@ -7,8 +7,8 @@ import org.scalatest._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent._
 import org.scalatest.time.{Millis, Span}
-import org.xarcher.ubw.macros.Ubw
 
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.existentials
 import scala.language.higherKinds
@@ -171,7 +171,7 @@ with OneInstancePerTest {
 
     val query = aabb.aabb(permissionTq1)
 
-    db.run(query.dataGen(Nil)).map(s => println(s.map(t => t.map()))).futureValue(oneSecondTimeOut)
+    db.run(query.dataGen(SlickParam())).map(s => println(s.data.map(t => t.map()))).futureValue(oneSecondTimeOut)
 
     def cc = {
       select(
@@ -191,7 +191,29 @@ with OneInstancePerTest {
       .where_ext { case (table1, table2) => table1.describe === "cc" }
       .where_ext { case (table1, table2) => table2.wang === table1.name }
       .order_by_ext { case (table1, table2) => table2.wang }
+      //.group_by_ext { case (table1, table2) => table2.wang }
     }
+
+    println("11" * 100)
+
+    println(db.run {
+      (for {
+        cat <- catTq1
+        permission <- permissionTq1
+      } yield {
+        cat -> permission
+      })
+      .filter { case (cat, permission) => permission.describe === "cc" }
+      .filter { case (cat, permission) => cat.wang === permission.name }
+      //.sortBy { case (cat, permission) => cat.wang }
+      .groupBy { case (cat, permission) => permission.name }.map { case ( cat, eachQuery) =>
+        eachQuery.map { case (cat, permission) => cat.id }.sum -> eachQuery.map { case (cat, permission) => permission.id }.avg
+      }
+      .sortBy(_._1)
+      .result
+    }.futureValue(oneSecondTimeOut))
+
+    println("22" * 100)
 
     object ccdd {
       def aabb(permissionTq: Query[PermissionTable, Permission, Seq], catTq: Query[CatTable, Cat, Seq]) = {
@@ -205,23 +227,30 @@ with OneInstancePerTest {
 
     val query1 = ccdd.aabb(permissionTq1, catTq1)
 
-    db.run(query1.dataGen(Nil)).map(s => println(s.map(t => t.list()))).futureValue(oneSecondTimeOut)
+    db.run(query1.dataGen(SlickParam())).map(s => println(s.data.map(t => t.list()))).futureValue(oneSecondTimeOut)
 
     import Ubw._
 
     def dd = from {
-      (permission: PermissionTable, cat: CatTable) =>
-        org.xarcher.ubw.wrapper.select(permission as "喵了个咪", permission.name as "喵", cat.wang as "十六夜的樱丘", cat as "卖了个萌", permission.typeName as "喵喵喵")
-          .where(permission.describe like "%%")
-          .where(permission.describe like "%%")
-          .where(cat.wang like "%%")
-          .where { cat.wang === permission.name }
-          .order_by(cat.wang)
-          .order_by(permission.describe)
+      (cat: CatTable, permission: PermissionTable) =>
+        org.xarcher.ubw.wrapper.select(
+          permission as "喵了个咪"/*order true*/,
+          permission.name as "喵" order true,
+          cat.wang as "十六夜的樱丘" order true,
+          cat as "卖了个萌"/*order true*/,
+          permission.typeName as "喵喵喵" order true
+        )
+        .where(permission.describe like "%%")
+        .where(permission.describe like "%%")
+        .where(cat.wang like "%%")
+        .where_if(2 == 3) { cat.wang === permission.name }
+          //.order_by(cat.wang)
+          //.order_by_if(2333 == 2333)(permission.describe)
+          //.group_by(permission.name)
     }
 
-    db.run(dd.dataGen(Nil)).map(s => println(s.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
-    db.run(dd.dataGen(Nil)).map(s => println(s.map(t => t.list()))).futureValue(oneSecondTimeOut)
+    db.run(dd.dataGen(SlickParam())).map(s => println(s.data.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
+    db.run(dd.dataGen(SlickParam(orders = ColumnOrder("喵喵喵", true) :: Nil))).map(s => println(s.data.map(t => t.list()))).futureValue(oneSecondTimeOut)
     println(dd.properties)
 
   }

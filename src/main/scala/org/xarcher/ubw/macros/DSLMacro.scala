@@ -1,5 +1,7 @@
 package org.xarcher.ubw.macros
 
+import org.xarcher.ubw.wrapper.{SqlWrapper, QueryInfo}
+
 import scala.reflect.macros.whitebox.Context
 import scala.language.experimental.macros
 
@@ -7,7 +9,7 @@ import scala.language.experimental.macros
   * Created by djx314 on 15-5-16.
   */
 object Ubw {
-  def from(obj: Any): Any = macro UbwMacroImpl.impl
+  def from[S](obj: Any): QueryInfo[S] = macro UbwMacroImpl.impl[S]
 }
 
 class UbwMacroImpl(override val c: Context) extends MacroUtils {
@@ -25,7 +27,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
     }
   }
 
-  def impl(obj: c.Expr[Any]): c.Expr[Any] = {
+  def impl[S](obj: c.Expr[Any]): c.Expr[QueryInfo[S]] = {
     val resultTree = obj match {
       case Expr(s) =>
         val q"""
@@ -54,14 +56,29 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
         val functionTransformer = new Transformer {
           override def transform(tree: Tree): Tree = {
             tree match {
-              case q"""${x1}.where[${x2}](${x3})(${x4})""" =>
+              case q"""$x1.where[$x2]($x3)($x4)""" =>
                 val nameConvert = convert(x3)
                 val aa = q"""$x1.where_ext { $nameConvert }"""
                 this.transform((aa))
 
-              case q"""${x1}.order_by[${x2}](${x3})(${x4})""" =>
+              case q"""$x1.where_if[$x2]($needParam)($x3)($x4)""" =>
+                val nameConvert = convert(x3)
+                val aa = q"""$x1.where_if_ext($needParam) { $nameConvert }"""
+                this.transform((aa))
+
+              case q"""$x1.order_by[$x2]($x3)($x4)""" =>
                 val nameConvert = convert(x3)
                 val aa = q"""$x1.order_by_ext { $nameConvert }"""
+                this.transform((aa))
+
+              case q"""$x1.order_by_if[$x2]($needParam)($x3)($x4)""" =>
+                val nameConvert = convert(x3)
+                val aa = q"""$x1.order_by_if_ext($needParam) { $nameConvert }"""
+                this.transform((aa))
+
+              case q"""$x1.group_by[..$x2]($x3)($x4)""" =>
+                val nameConvert = convert(x3)
+                val aa = q"""$x1.group_by_ext { $nameConvert }"""
                 this.transform((aa))
 
               case q"""org.xarcher.ubw.wrapper.select.apply[..${_}](..$columns)""" =>
@@ -71,24 +88,6 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                     val columnTransaformer = new Transformer {
                       override def transform(tree: Tree): Tree = {
                         tree match {
-                          /*case contentTree@q"""${_}[..${_}](..${ columnDescribe }).as[..${_}](..${ columnName :: Nil })(..${_}).${decide}""" =>
-                            val valToMatch: List[Tree] => Tree = (body) => {
-                              val name = TermName(c.freshName)
-                              val types = tq"""(..${tablesInfo.map(_._2)})"""
-                              q"""
-                              ($name : $types) => $name match {
-                                case (..$tableParams) => {
-                                  ..$body
-                                }
-                              }
-                              """
-                            }
-                            val nameConvert = tablesInfo.foldLeft(valToMatch(columnDescribe)) { case (baseFunction, (paramName, _)) => {
-                              val nameTranformer = paramTransformGen(paramName, c.freshName(paramName))
-                              nameTranformer.transform(baseFunction)
-                            } }
-
-                            this.transform(q"""${nameConvert}.as_ext($columnName).$decide""")*/
                           case contentTree@q"""${_}[..${_}](..${ columnDescribe }).as[..${_}](..${ columnName :: Nil })(..${_})""" =>
                             val valToMatch: List[Tree] => Tree = (body) => {
                               val name = TermName(c.freshName)
