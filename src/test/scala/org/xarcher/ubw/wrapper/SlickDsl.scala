@@ -259,12 +259,25 @@ with OneInstancePerTest {
     println("44" * 100)
     println(dd.properties)
 
-    //test
-    ((table1: PermissionTable) => {
-      table1.typeName
-    }) as_ext "喵了个咪" asQ((aaRep: Query[Rep[Option[String]], Option[String], Seq]) => {
-      aaRep.sum
-    })
+    val kakakbb = gselect(
+      ((table1: (CatTable, PermissionTable)) => {
+        table1._1.id
+      }) as_ext "喵喵喵喵喵" asQ ((rep1Query: Query[Rep[Long], Long, Seq]) => rep1Query.sum) order true,
+      ((table1: (CatTable, PermissionTable)) => {
+        table1._2.id
+      }) as_ext "喵了个咪" asQ ((rep1Query: Query[Rep[Long], Long, Seq]) => rep1Query.avg) order true
+    )
+    .group_by_ext { case (table1, table2) => table1.miao }
+    .where_ext { case (table1, table2) => table1.wang === table2.name }
+
+    db.run(kakakbb.queryResult {
+      for {
+        cat <- catTq1
+        permission <- permissionTq1
+      } yield {
+        cat -> permission
+      } }.dataGen(SlickParam(orders = ColumnOrder("喵了个咪", true) :: Nil))
+    ).map(s => println(s.data.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
 
   }
 

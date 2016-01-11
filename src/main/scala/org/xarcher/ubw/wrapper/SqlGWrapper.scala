@@ -125,7 +125,21 @@ case class SqlGWrapper[S](
 
       val baseQuery = groupBy match {
         case Some(eachGroupBy) =>
-          codeSortQuery.groupBy(eachGroupBy.convert)(eachGroupBy.kshape, eachGroupBy.vshape).map { case (key, valueQuery) => repGens.queryGen(valueQuery) }(repGens.shape)
+          val resultQuery = codeSortQuery.groupBy(eachGroupBy.convert)(eachGroupBy.kshape, eachGroupBy.vshape).map { case (key, valueQuery) => repGens.queryGen(valueQuery) }(repGens.shape)
+          limit.orders.foldLeft(resultQuery) { case (eachQuery, ColumnOrder(eachOrderName, eachIsDesc)) =>
+            orderMap.get(eachOrderName) match {
+              case Some(convert) =>
+                eachQuery.sortBy(s => {
+                  val colOrder = convert(s)
+                  if (eachIsDesc)
+                    colOrder.desc.nullsLast
+                  else
+                    colOrder.asc.nullsLast
+                })
+              case _ =>
+                eachQuery
+            }
+          }
         case _ =>
           throw new Exception("你猫了个咪写了个 groupby 又不用 groupby")
           /*val resultQuery = codeSortQuery.map(repGens.repGen(_))(repGens.shape)
