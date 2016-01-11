@@ -13,11 +13,11 @@ package object wrapper {
 
   implicit class miaolegemiRepExtensionMethod[S1, R1](repLike: S1 => R1) {
 
-    def as_ext[T1 : WeakTypeTag, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1], jsonEncoder1: Encoder[T1]): SqlRep[S1, R1] = {
-      new SqlRep[S1, R1] {
+    def as_ext[T1 : WeakTypeTag, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1], jsonEncoder1: Encoder[T1]): SqlRep[S1, R1, G1] = {
+      new SqlRep[S1, R1, G1] {
         //override type R = R1
         override type T = T1
-        override type G = G1
+        //override type G = G1
         override val valueTypeTag = implicitly[WeakTypeTag[T1]]
         override val proName = columnName
         override val isHidden = false
@@ -32,7 +32,7 @@ package object wrapper {
 
   implicit class miaolegemiRepExtensionMethod1111[R1](repLike: R1) {
 
-    def as[T1 : WeakTypeTag, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1]): SqlRep[Any, R1] = ???
+    def as[T1 : WeakTypeTag, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1]): SqlRep[Any, R1, G1] = ???
 
   }
 

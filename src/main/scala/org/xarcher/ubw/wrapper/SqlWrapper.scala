@@ -40,12 +40,12 @@ trait SqlFilter[S] {
 
 }
 
-trait SqlRepOrder[ValType] {
+trait SqlRepOrder[TargetType] {
 
-  //type ValType
-  //type TableType = S
-  val wt: Rep[ValType] => ColumnOrdered[ValType]
-  //val convert: TableType => Rep[ValType]
+  type RepType
+  val typeConvert: TargetType <:< Rep[RepType]
+  val typeTyped: TypedType[RepType]
+  val wt: Rep[RepType] => ColumnOrdered[RepType]
 
 }
 
@@ -72,10 +72,10 @@ trait SqlGroupBy[S] {
 
 }
 
-sealed trait SqlRepBase[S, R] {
+sealed trait SqlRepBase[S, R, G] {
 
   type T
-  type G
+  //type G
   val proName: String
   val isHidden: Boolean
   val isDefaultDesc: Boolean
@@ -86,32 +86,17 @@ sealed trait SqlRepBase[S, R] {
     * 如果同时拥有 orderTarget 和 ordereImplicit，以 orderTarget 为先
     */
   val orderTargetName: Option[String] = None
-  val sqlOrder: Option[SqlRepOrder[R]] = None
+  val sqlOrder: Option[SqlRepOrder[G]] = None
 
   def hidden(isHidden: Boolean = this.isHidden): this.type
 
-  def order[K](isDefaultDesc: Boolean)(implicit columnGen: R <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K], typeTypedK: TypedType[K]): this.type
+  def order[K](isDefaultDesc: Boolean)(implicit columnGen: G <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K], typeTypedK: TypedType[K]): this.type
 
   def orderTarget(targetName: String, isDefaultDesc: Boolean): this.type
 
 }
 
-trait SqlRep[S, R] extends SqlRepBase[S, R] {
-
-  //type T
-  //type G
-  //val proName: String
-  //val isHidden: Boolean
-  //val isDefaultDesc: Boolean
-  //val f: S => R
-  //val shape: Shape[_ <: FlatShapeLevel, R, T, G]
-  //val valueTypeTag: WeakTypeTag[T]
-  //val jsonEncoder: Encoder[T]
-  /**
-    * 如果同时拥有 orderTarget 和 ordereImplicit，以 orderTarget 为先
-    */
-  //val orderTarget: Option[String] = None
-  //val sqlOrder: Option[SqlRepOrder[S]] = None
+trait SqlRep[S, R, G] extends SqlRepBase[S, R, G] {
 
   val f: S => R
 
@@ -120,14 +105,13 @@ trait SqlRep[S, R] extends SqlRepBase[S, R] {
     this.copy(isHidden = isHidden1)
   }
 
-  override def order[K](isDefaultDesc: Boolean)(implicit columnGen: R <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K], typeTypedK: TypedType[K]): this.type = {
-    val convert1: S => Rep[K] = table =>
-      f(table)
+  override def order[K](isDefaultDesc: Boolean)(implicit columnGen: G <:< Rep[K], wtImplicit: Rep[K] => ColumnOrdered[K], typeTypedK: TypedType[K]): this.type = {
     val isDefaultDesc1 = isDefaultDesc
-    val sqlOrder1 = new SqlRepOrder[R] {
-      //override type ValType = K
+    val sqlOrder1 = new SqlRepOrder[G] {
+      override type RepType = K
+      override val typeConvert = columnGen
+      override val typeTyped = typeTypedK
       override val wt = wtImplicit
-      //override val convert = convert1
     }
     this.copy(sqlOrder = Option(sqlOrder1), isDefaultDesc = isDefaultDesc1)
   }
@@ -139,7 +123,7 @@ trait SqlRep[S, R] extends SqlRepBase[S, R] {
   }
 
   def copy(proName: String = this.proName, isHidden: Boolean = this.isHidden, isDefaultDesc: Boolean = this.isDefaultDesc, f: S => R = this.f,
-           orderTargetName: Option[String] = this.orderTargetName, sqlOrder: Option[SqlRepOrder[R]] = this.sqlOrder): this.type = {
+           orderTargetName: Option[String] = this.orderTargetName, sqlOrder: Option[SqlRepOrder[G]] = this.sqlOrder): this.type = {
     type R1 = R
     type T1 = T
     type G1 = G
@@ -152,9 +136,9 @@ trait SqlRep[S, R] extends SqlRepBase[S, R] {
     val jsonEncoder1 = this.jsonEncoder
     val orderTargetName1 = orderTargetName
     val sqlOrder1 = sqlOrder
-    new SqlRep[S, R] {
+    new SqlRep[S, R, G1] {
       override type T = T1
-      override type G = G1
+      //override type G = G1
       override val proName = proName1
       override val isHidden = isHidden1
       override val isDefaultDesc = isDefaultDesc1
@@ -279,7 +263,7 @@ case class QueryInfo[S](wrapper: SqlWrapper[S], dataGen: SlickParam => DBIO[Resu
 case class TableData(properties: List[PropertyInfo], data: List[Map[String, Json]], sum: Long)
 
 case class SqlWrapper[S](
-  select: List[SqlRep[S, _]],
+  select: List[SqlRep[S, _, _]],
   filters: List[SqlFilter[S]] = Nil,
   orders: List[SqlOrder[S]] = Nil,
   groupBy: Option[SqlGroupBy[S]] = None
@@ -365,22 +349,16 @@ case class SqlWrapper[S](
 
   lazy val properties = select.map(s => PropertyInfo(s.proName, s.valueTypeTag.tpe.toString, s.isHidden, orderMap.exists(_._1 == s.proName), s.isDefaultDesc))
   //获取列名和排序方案的 Map
-  lazy val orderMap: Map[String, SqlRepOrder[S]] = {
-    //不考虑 targetName 的基本 map
-    val strSqlOrderMap: Map[String, SqlRepOrder[S]] = {
-      select.collect {
-        case s if s.sqlOrder.isDefined =>
-          s.proName -> s.sqlOrder.get
+  lazy val orderMap: Map[String, repGens.TargetColType => ColumnOrdered[_]] = {
+    select.foldLeft(repGens.orderGen)((orderGen, eachSelect) => {
+      eachSelect.orderTargetName match {
+        case Some(targetName) =>
+          val plusItem = targetName -> orderGen.get(targetName).getOrElse(throw new Exception("targetName: $targetName 对应的列没有被排序"))
+          orderGen + plusItem
+        case _ =>
+          orderGen
       }
-    }.toMap
-    //对 targetName 不为空的列进行转化
-    select.collect {
-      case s if s.orderTargetName.isDefined =>
-        s.proName -> s.orderTargetName.get
-    }.foldLeft(strSqlOrderMap) { case (eachMap, (eachPro, eachTarget)) => {
-      val plusItem = eachPro -> eachMap.get(eachTarget).getOrElse(throw new Exception("targetName: $eachTarget 对应的列没有被排序"))
-      eachMap + plusItem
-    } }
+    })
   }
 
   def queryResult(query: Query[S, _, Seq])
@@ -400,7 +378,7 @@ case class SqlWrapper[S](
       val codeSortQuery = orders.foldLeft(filterQuery)((fQuery, eachOrder) => {
         fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
       })
-      val paramSortQuery = limit.orders.foldLeft(codeSortQuery) { case (cQuery, ColumnOrder(eachOrderName, eachIsDesc)) => {
+      /*val paramSortQuery = limit.orders.foldLeft(codeSortQuery) { case (cQuery, ColumnOrder(eachOrderName, eachIsDesc)) => {
         orderMap.get(eachOrderName) match {
           case Some(sqlOrder) =>
             cQuery.sortBy(table1 => {
@@ -412,12 +390,27 @@ case class SqlWrapper[S](
             })
           case _ => cQuery
         }
-      } }
+      } }*/
 
       val baseQuery = groupBy match {
         case Some(eachGroupBy) =>
-          paramSortQuery.groupBy(eachGroupBy.convert)(eachGroupBy.kshape, eachGroupBy.vshape).flatMap { case (key, valueQuery) => valueQuery.map(repGens.repGen(_))(repGens.shape) }
-        case _ => paramSortQuery.map(repGens.repGen(_))(repGens.shape)
+          codeSortQuery.groupBy(eachGroupBy.convert)(eachGroupBy.kshape, eachGroupBy.vshape).flatMap { case (key, valueQuery) => valueQuery.map(repGens.repGen(_))(repGens.shape) }
+        case _ =>
+          val resultQuery = codeSortQuery.map(repGens.repGen(_))(repGens.shape)
+          limit.orders.foldLeft(resultQuery) { case (eachQuery, ColumnOrder(eachOrderName, eachIsDesc)) =>
+            orderMap.get(eachOrderName) match {
+              case Some(convert) =>
+                resultQuery.sortBy(s => {
+                  val colOrder = convert(s)
+                  if (eachIsDesc)
+                    colOrder.desc.nullsLast
+                  else
+                    colOrder.asc.nullsLast
+                })
+              case _ =>
+                resultQuery
+            }
+          }
       }
 
       //val baseQuery = paramSortQuery.map(repGens.repGen(_))(repGens.shape)
@@ -501,7 +494,7 @@ case class SqlWrapper[S](
 
 object select {
 
-  def apply[S](columns: SqlRep[S, _]*) = {
+  def apply[S](columns: SqlRep[S, _, _]*) = {
     SqlWrapper(
       select = columns.toList
     )
@@ -517,15 +510,12 @@ trait SelectRep[S] {
   val listGen: ValType => List[SlickData]
   val mapGen: ValType => Map[String, SlickData]
   val repGen: S => ColType
-  //val repMap: Map[String, SqlRep[S]]
+  val orderGen: Map[String, TargetColType => ColumnOrdered[_]]
 
-  def append[RT](baseRep: SqlRep[S, RT]): SelectRep[S] = {
-    /*if (baseRep.isHidden) {
-      this
-    } else {*/
+  def append[RT, G1](baseRep: SqlRep[S, RT, G1]): SelectRep[S] = {
     type ColType1 = (ColType, RT)
     type ValType1 = (ValType, baseRep.T)
-    type TargetColType1 = (TargetColType, baseRep.G)
+    type TargetColType1 = (TargetColType, G1)
     val shape1 = new TupleShape[FlatShapeLevel, ColType1, ValType1, TargetColType1](shape, baseRep.shape)
     val listGen1: ValType1 => List[SlickData] = (newValue) => {
       val baseList = listGen(newValue._1)
@@ -556,7 +546,25 @@ trait SelectRep[S] {
       val newCol = baseRep.f(sourceTable)
       initCols -> newCol
     }
-    //val repMap1 = repMap + (baseRep.proName -> baseRep)
+    val orderGen1: Map[String, TargetColType1 => ColumnOrdered[_]] = {
+      val oldMap = orderGen.map { case (key, convert) => {
+        val convert1: TargetColType1 => ColumnOrdered[_] = {
+          case (currentTargetCol, newCol) =>
+            convert(currentTargetCol)
+        }
+        key -> convert1
+      } }
+      (for {
+        sqlOrder <- baseRep.sqlOrder
+      } yield {
+        val newConvert: TargetColType1 => ColumnOrdered[_] = {
+          case (currentTargetCol, newCol) =>
+            sqlOrder.wt(sqlOrder.typeConvert(newCol))
+        }
+        oldMap + (baseRep.proName -> newConvert)
+      })
+      .getOrElse(oldMap)
+    }
 
     new SelectRep[S] {
       override type ColType = ColType1
@@ -566,20 +574,19 @@ trait SelectRep[S] {
       override val listGen = listGen1
       override val mapGen = mapGen1
       override val repGen = repGen1
-      //override val repMap = repMap1
+      override val orderGen = orderGen1
     }
-    /*}*/
   }
 }
 
 object SelectRep {
 
-  def head[S, RT](baseRep: SqlRep[S, RT]): SelectRep[S] = {
+  def head[S, RT, G1](baseRep: SqlRep[S, RT, G1]): SelectRep[S] = {
     new SelectRep[S] {
       override type ColType = Tuple1[RT]
       override type ValType = Tuple1[baseRep.T]
-      override type TargetColType = Tuple1[baseRep.G]
-      override val shape = new TupleShape[FlatShapeLevel, Tuple1[RT], Tuple1[baseRep.T], Tuple1[baseRep.G]](baseRep.shape)
+      override type TargetColType = Tuple1[G1]
+      override val shape = new TupleShape[FlatShapeLevel, Tuple1[RT], Tuple1[baseRep.T], Tuple1[G1]](baseRep.shape)
       override val listGen = (baseVal: ValType) => {
         val initValue = new SlickData {
           override val property = baseRep.proName
@@ -603,7 +610,18 @@ object SelectRep {
       override val repGen = (baseTable: S) => {
         Tuple1(baseRep.f(baseTable))
       }
-      //override val repMap = Map(baseRep.proName -> baseRep)
+      override val orderGen = {
+        (for {
+          sqlOrder <- baseRep.sqlOrder
+        } yield {
+          val newConvert: TargetColType => ColumnOrdered[_] = {
+            case Tuple1(initCol) =>
+              sqlOrder.wt(sqlOrder.typeConvert(initCol))
+          }
+          Map(baseRep.proName -> newConvert)
+        })
+        .getOrElse(Map.empty[String, TargetColType => ColumnOrdered[_]])
+      }
     }
   }
 

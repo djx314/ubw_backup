@@ -233,18 +233,24 @@ with OneInstancePerTest {
 
     def dd = from {
       (cat: CatTable, permission: PermissionTable) =>
-        org.xarcher.ubw.wrapper.select(permissionTq1.map(_.id).sum as "喵了个咪"/*permission as "喵了个咪", permission.name as "喵", cat.wang as "十六夜的樱丘", cat as "卖了个萌", permission.typeName as "喵喵喵"*/)
-          .where(permission.describe like "%%")
-          .where(permission.describe like "%%")
-          .where(cat.wang like "%%")
-          .where_if(2 == 3) { cat.wang === permission.name }
+        org.xarcher.ubw.wrapper.select(
+          permission as "喵了个咪"/*order true*/,
+          permission.name as "喵" order true,
+          cat.wang as "十六夜的樱丘" order true,
+          cat as "卖了个萌"/*order true*/,
+          permission.typeName as "喵喵喵" order true
+        )
+        .where(permission.describe like "%%")
+        .where(permission.describe like "%%")
+        .where(cat.wang like "%%")
+        .where_if(2 == 3) { cat.wang === permission.name }
           //.order_by(cat.wang)
           //.order_by_if(2333 == 2333)(permission.describe)
           //.group_by(permission.name)
     }
 
     db.run(dd.dataGen(SlickParam())).map(s => println(s.data.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
-    db.run(dd.dataGen(SlickParam())).map(s => println(s.data.map(t => t.list()))).futureValue(oneSecondTimeOut)
+    db.run(dd.dataGen(SlickParam(orders = ColumnOrder("喵喵喵", true) :: Nil))).map(s => println(s.data.map(t => t.list()))).futureValue(oneSecondTimeOut)
     println(dd.properties)
 
   }
