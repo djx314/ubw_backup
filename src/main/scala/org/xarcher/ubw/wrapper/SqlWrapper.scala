@@ -223,7 +223,7 @@ case class SqlWrapper[S](
 
 object select {
 
-  def apply[S](columns: SqlRep[S, _, _, _]*) = {
+  def apply[S](columns: SqlRep[S, _, _, _]*): SqlWrapper[S] = {
     SqlWrapper(
       select = columns.toList
     )

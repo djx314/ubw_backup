@@ -235,7 +235,7 @@ case class SqlGWrapper[S](
 
 object gselect {
 
-  def apply[S](columns: SqlGRep[S, _, _, _]*) = {
+  def apply[S](columns: SqlGRep[S, _, _, _]*): SqlGWrapper[S] = {
     SqlGWrapper(
       select = columns.toList
     )
