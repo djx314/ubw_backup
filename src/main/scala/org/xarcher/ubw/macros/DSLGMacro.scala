@@ -8,12 +8,7 @@ import scala.language.experimental.macros
 /**
   * Created by djx314 on 15-5-16.
   */
-object Ubw {
-  def from[S](obj: Any): QueryInfo = macro UbwMacroImpl.impl
-  def gfrom[S](obj: Any): QueryInfo = macro UbwGMacroImpl.impl
-}
-
-class UbwMacroImpl(override val c: Context) extends MacroUtils {
+class UbwGMacroImpl(override val c: Context) extends MacroUtils {
 
   import c.universe._
 
@@ -77,12 +72,12 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                 val aa = q"""$x1.order_by_if_ext($needParam) { $nameConvert }"""
                 this.transform((aa))
 
-              /*case q"""$x1.group_by[..$x2]($x3)($x4)""" =>
+              case q"""$x1.group_by[..$x2]($x3)($x4)""" =>
                 val nameConvert = convert(x3)
                 val aa = q"""$x1.group_by_ext { $nameConvert }"""
-                this.transform((aa))*/
+                this.transform((aa))
 
-              case q"""org.xarcher.ubw.wrapper.select.apply[..${_}](..$columns)""" =>
+              case q"""org.xarcher.ubw.wrapper.gselect.apply[..${_}](..$columns)""" =>
                 val newColumns = (for {
                   eachColumn <- columns
                 } yield {
@@ -122,7 +117,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
 
                 //println(columns)
                 //println(newColumns)
-                q"""org.xarcher.ubw.wrapper.select(..$newColumns)"""
+                q"""org.xarcher.ubw.wrapper.gselect(..$newColumns)"""
 
               case other => {
                 super.transform(other)

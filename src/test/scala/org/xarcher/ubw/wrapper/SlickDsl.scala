@@ -262,10 +262,10 @@ with OneInstancePerTest {
     val kakakbb = gselect(
       ((table1: (CatTable, PermissionTable)) => {
         table1._1.id
-      }) as_ext "喵喵喵喵喵" asQ ((rep1Query: Query[Rep[Long], Long, Seq]) => rep1Query.sum) order true,
+      }) as_ext "喵喵喵喵喵" asQ (_.sum) order true,
       ((table1: (CatTable, PermissionTable)) => {
         table1._2.id
-      }) as_ext "喵了个咪" asQ ((rep1Query: Query[Rep[Long], Long, Seq]) => rep1Query.avg) order true
+      }) as_ext "喵了个咪" asQ (_.avg) order true
     )
     .group_by_ext { case (table1, table2) => table1.miao }
     .where_ext { case (table1, table2) => table1.wang === table2.name }

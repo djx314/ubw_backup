@@ -98,21 +98,21 @@ trait SqlRep[S, R, G, T] extends SqlRepBase[S, R, G, T] {
 
   val f: S => R
 
-  def asQ[H, P, N, A](convert: Query[A, T, Seq] => N)(implicit mshape: Shape[_ <: FlatShapeLevel, R, T, A], mikuShape: Shape[_ <: FlatShapeLevel, N, P, H], jsonEncoder1: Encoder[P], valueTypeTag1: WeakTypeTag[P]) = {
-    type G1 = G
+  def asQ[H, P, N](convert: Query[G, T, Seq] => N)(implicit mikuShape: Shape[_ <: FlatShapeLevel, N, P, H], jsonEncoder1: Encoder[P], valueTypeTag1: WeakTypeTag[P]) = {
 
     val f1 = this.f
 
     val proName1 = this.proName
     val isHidden1 = this.isHidden
     val isDefaultDesc1 = this.isDefaultDesc
+    val mshape = this.shape
     //val orderTargetName1 = this.orderTargetName
     //val sqlOrder1 = this.sqlOrder
 
     new SqlGRep[S, N, H, P] {
       override type U = R
       override type B = T
-      override type W = A
+      override type W = G
       override val f = f1
       override val ushape = mshape
       override val e = convert

@@ -12,8 +12,8 @@ import slick.lifted._
 case class SqlWrapper[S](
   select: List[SqlRep[S, _, _, _]],
   filters: List[SqlFilter[S]] = Nil,
-  orders: List[SqlOrder[S]] = Nil,
-  groupBy: Option[SqlGroupBy[S]] = None
+  orders: List[SqlOrder[S]] = Nil//,
+  //groupBy: Option[SqlGroupBy[S]] = None
 ) {
 
   def where_ext[R <: Rep[_] : CanBeQueryCondition](f: S => R): this.type = {
@@ -66,7 +66,7 @@ case class SqlWrapper[S](
 
   def order_by_if[K](need: Boolean)(f: K)(implicit wtImplicit: K => Ordered): this.type = ???
 
-  def group_by_ext[K1, T1, G1](f: S => K1)(implicit kshape1: Shape[_ <: FlatShapeLevel, K1, T1, G1], vshape1: Shape[_ <: FlatShapeLevel, S, _, S]): this.type = {
+  /*def group_by_ext[K1, T1, G1](f: S => K1)(implicit kshape1: Shape[_ <: FlatShapeLevel, K1, T1, G1], vshape1: Shape[_ <: FlatShapeLevel, S, _, S]): this.type = {
     val groupBy1 = new SqlGroupBy[S] {
       override type RepType = K1
       override type T = T1
@@ -81,7 +81,7 @@ case class SqlWrapper[S](
     this.copy(groupBy = Option(groupBy1)).asInstanceOf[this.type]
   }
 
-  def group_by[K1, T1, G1](f: K1)(implicit kshape1: Shape[_ <: FlatShapeLevel, K1, T1, G1]): this.type = ???
+  def group_by[K1, T1, G1](f: K1)(implicit kshape1: Shape[_ <: FlatShapeLevel, K1, T1, G1]): this.type = ???*/
 
   lazy val repGens = {
     //暂时隐藏 filter，估计以后也不会再开了
