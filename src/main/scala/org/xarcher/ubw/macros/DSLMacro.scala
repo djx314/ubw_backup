@@ -2,15 +2,15 @@ package org.xarcher.ubw.macros
 
 import org.xarcher.ubw.wrapper.{SqlWrapper, QueryInfo}
 
-import scala.reflect.macros.whitebox.Context
+import scala.reflect.macros.blackbox.Context
 import scala.language.experimental.macros
 
 /**
   * Created by djx314 on 15-5-16.
   */
 object Ubw {
-  def from[S](obj: Any): QueryInfo = macro UbwMacroImpl.impl
-  def gfrom[S](obj: Any): QueryInfo = macro UbwGMacroImpl.impl
+  def from(obj: Any): QueryInfo = macro UbwMacroImpl.impl
+  def gfrom(obj: Any): QueryInfo = macro UbwGMacroImpl.impl
 }
 
 class UbwMacroImpl(override val c: Context) extends MacroUtils {

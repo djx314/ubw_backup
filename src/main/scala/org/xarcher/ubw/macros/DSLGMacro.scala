@@ -2,7 +2,7 @@ package org.xarcher.ubw.macros
 
 import org.xarcher.ubw.wrapper.{SqlWrapper, QueryInfo}
 
-import scala.reflect.macros.whitebox.Context
+import scala.reflect.macros.blackbox.Context
 import scala.language.experimental.macros
 
 /**
