@@ -241,7 +241,7 @@ trait SelectRep[S] {
   val repGen: S => ColType
   val orderGen: Map[String, TargetColType => ColumnOrdered[_]]
 
-  def append[RT, G1, T1](baseRep: SqlRep[S, RT, G1, T1]): SelectRep[S] = {
+  def append[RT, G1, T1](baseRep: SqlRep[S, RT, T1, G1]): SelectRep[S] = {
     type ColType1 = (ColType, RT)
     type ValType1 = (ValType, T1/*baseRep.T*/)
     type TargetColType1 = (TargetColType, G1)
@@ -310,7 +310,7 @@ trait SelectRep[S] {
 
 object SelectRep {
 
-  def head[S, RT, G1, T1](baseRep: SqlRep[S, RT, G1, T1]): SelectRep[S] = {
+  def head[S, RT, G1, T1](baseRep: SqlRep[S, RT, T1, G1]): SelectRep[S] = {
     new SelectRep[S] {
       override type ColType = Tuple1[RT]
       override type ValType = Tuple1[T1]

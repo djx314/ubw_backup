@@ -262,10 +262,10 @@ with OneInstancePerTest {
     val kakakbb = gselect(
       ((table1: (CatTable, PermissionTable)) => {
         table1._1.id
-      }) as_ext "喵喵喵喵喵" asQ (_.sum) order true,
+      }).asQ_ext asM (_.sum) as "喵喵喵喵喵" order true,
       ((table1: (CatTable, PermissionTable)) => {
         table1._2.id
-      }) as_ext "喵了个咪" asQ (_.avg) order true
+      }).asQ_ext asM (_.avg) as "喵了个咪" order true
     )
     .group_by_ext { case (table1, table2) => table1.miao }
     .where_ext { case (table1, table2) => table1.wang === table2.name }
@@ -278,6 +278,24 @@ with OneInstancePerTest {
         cat -> permission
       } }.dataGen(SlickParam(orders = ColumnOrder("喵了个咪", true) :: Nil))
     ).map(s => println(s.data.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
+
+    val bababbakkdk =
+      Ubw.gfrom(
+        (cat: CatTable, permission: PermissionTable) => {
+          org.xarcher.ubw.wrapper.gselect(
+            cat.id.asQ asM (_.sum) as "喵喵喵喵喵11111111" order true,
+            permission.id.asQ asM (_.avg) as "喵了个咪11111111" order true
+          )
+          .group_by(cat.miao)
+          .where(cat.wang === permission.name)
+        }
+      )
+
+    println(
+      db.run(
+        bababbakkdk.dataGen(SlickParam(orders = ColumnOrder("喵了个咪", true) :: Nil))
+      ).map(s => println(s.data.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
+    )
 
   }
 

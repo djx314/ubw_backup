@@ -84,7 +84,7 @@ class UbwGMacroImpl(override val c: Context) extends MacroUtils {
                     val columnTransaformer = new Transformer {
                       override def transform(tree: Tree): Tree = {
                         tree match {
-                          case contentTree@q"""${_}[..${_}](..${ columnDescribe }).as[..${_}](..${ columnName :: Nil })(..${_})""" =>
+                          case contentTree@q"""${_}[..${_}](..${ columnDescribe }).asQ[..${_}](..${_})""" =>
                             val valToMatch: List[Tree] => Tree = (body) => {
                               val name = TermName(c.freshName)
                               val types = tq"""(..${tablesInfo.map(_._2)})"""
@@ -102,7 +102,7 @@ class UbwGMacroImpl(override val c: Context) extends MacroUtils {
                               nameTranformer.transform(baseFunction)
                             } }
 
-                            q"""${nameConvert}.as_ext($columnName)"""
+                            q"""${nameConvert}.asQ_ext"""
                           /*case q"${orderContent}.order(..$params)" =>
                             val resultContent = this.transform(orderContent)
                             q"""${resultContent}.order_ext(..$params)"""*/

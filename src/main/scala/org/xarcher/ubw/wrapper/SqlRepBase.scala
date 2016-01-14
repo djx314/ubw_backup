@@ -70,7 +70,7 @@ trait SqlGroupBy[S] {
 
 }
 
-sealed trait SqlRepBase[S, R, G, T] {
+sealed trait SqlRepBase[S, R, T, G] {
 
   //type T
   //type G
@@ -94,11 +94,11 @@ sealed trait SqlRepBase[S, R, G, T] {
 
 }
 
-trait SqlRep[S, R, G, T] extends SqlRepBase[S, R, G, T] {
+trait SqlRep[S, R, T, G] extends SqlRepBase[S, R, T, G] {
 
   val f: S => R
 
-  def asQ[H, P, N](convert: Query[G, T, Seq] => N)(implicit mikuShape: Shape[_ <: FlatShapeLevel, N, P, H], jsonEncoder1: Encoder[P], valueTypeTag1: WeakTypeTag[P]) = {
+  /*def asQ[H, P, N](convert: Query[G, T, Seq] => N)(implicit mikuShape: Shape[_ <: FlatShapeLevel, N, P, H], jsonEncoder1: Encoder[P], valueTypeTag1: WeakTypeTag[P]) = {
 
     val f1 = this.f
 
@@ -126,7 +126,7 @@ trait SqlRep[S, R, G, T] extends SqlRepBase[S, R, G, T] {
       override val isDefaultDesc = isDefaultDesc1
       override val shape = mikuShape
     }
-  }
+  }*/
 
   override def hidden(isHidden: Boolean = this.isHidden): this.type = {
     val isHidden1 = isHidden
@@ -163,7 +163,7 @@ trait SqlRep[S, R, G, T] extends SqlRepBase[S, R, G, T] {
     val jsonEncoder1 = this.jsonEncoder
     val orderTargetName1 = orderTargetName
     val sqlOrder1 = sqlOrder
-    new SqlRep[S, R, G1, T1] {
+    new SqlRep[S, R, T1, G1] {
       //override type T = T1
       //override type G = G1
       override val proName = proName1
@@ -180,7 +180,29 @@ trait SqlRep[S, R, G, T] extends SqlRepBase[S, R, G, T] {
 
 }
 
-trait SqlGRep[S, R, G, T] extends SqlRepBase[S, R, G, T] {
+trait SqlMiddle[S, R, T, G] {
+
+  val f: S => R
+
+  val shape: Shape[_ <: FlatShapeLevel, R, T, G]
+
+  def asM[K, X, Y](cv: Query[G, T, Seq] => K)(implicit mikuShape: Shape[_ <: FlatShapeLevel, K, X, Y]): SqlMiddleRep[S, K, X, Y] = {
+    val f1 = this.f
+    val shape1 = this.shape
+    new SqlMiddleRep[S, K, X, Y] {
+      override type U = R
+      override type B = T
+      override type W = G
+      override val f = f1
+      override val e = cv
+      override val ushape = shape1
+      override val shape = mikuShape
+    }
+  }
+
+}
+
+trait SqlMiddleRep[S, R, T, G] {
 
   type U
   type B
@@ -188,13 +210,60 @@ trait SqlGRep[S, R, G, T] extends SqlRepBase[S, R, G, T] {
 
   val f: S => U
   val ushape: Shape[_ <: FlatShapeLevel, U, B, W]
-  //val shape: Shape[_ <: FlatShapeLevel, R, T, G]
+  val shape: Shape[_ <: FlatShapeLevel, R, T, G]
   val e: Query[W, B, Seq] => R
 
   val queryToRep: Query[S, _, Seq] => R = (query) => {
     val query1 = query.map(xarcher => f(xarcher))(ushape)
     e(query1)
   }
+
+  def as(columnName: String)(implicit jsonEncoder1: Encoder[T], valueTypeTag1: WeakTypeTag[T]) = {
+
+    val f1 = this.f
+
+    val mshape = this.shape
+    val queryToRep1 = this.queryToRep
+    //val orderTargetName1 = this.orderTargetName
+    //val sqlOrder1 = this.sqlOrder
+
+    new SqlGRep[S, R, T, G] {
+      //override type U = R
+      //override type B = T
+      //override type W = G
+      //override val f = f1
+      //override val ushape = mshape
+      //override val e = convert
+      override val valueTypeTag = valueTypeTag1
+      override val queryToRep = queryToRep1
+      override val jsonEncoder = jsonEncoder1
+      //这 2 个都是 none，记得
+      override val orderTargetName = None
+      override val sqlOrder = None
+      override val proName = columnName
+      override val isHidden = false
+      override val isDefaultDesc = true
+      override val shape = mshape
+    }
+  }
+
+}
+
+trait SqlGRep[S, R, T, G] extends SqlRepBase[S, R, T, G] {
+
+  //type U
+  //type B
+  //type W
+
+  //val f: S => U
+  //val ushape: Shape[_ <: FlatShapeLevel, U, B, W]
+  //val shape: Shape[_ <: FlatShapeLevel, R, T, G]
+  //val e: Query[W, B, Seq] => R
+
+  val queryToRep: Query[S, _, Seq] => R/*= (query) => {
+    val query1 = query.map(xarcher => f(xarcher))(ushape)
+    e(query1)
+  }*/
 
   override def hidden(isHidden: Boolean = this.isHidden): this.type = {
     val isHidden1 = isHidden
@@ -218,40 +287,41 @@ trait SqlGRep[S, R, G, T] extends SqlRepBase[S, R, G, T] {
   }
 
   def copy(proName: String = this.proName, isHidden: Boolean = this.isHidden, isDefaultDesc: Boolean = this.isDefaultDesc,
-           f: S => U = this.f, e: Query[W, B, Seq] => R = this.e,
+           queryToRep: Query[S, _, Seq] => R = this.queryToRep,
+           //f: S => U = this.f, e: Query[W, B, Seq] => R = this.e,
            orderTargetName: Option[String] = this.orderTargetName, sqlOrder: Option[SqlRepOrder[G]] = this.sqlOrder): this.type = {
-    type U1 = U
-    type B1 = B
-    type W1 = W
-    type R1 = R
-    type T1 = T
-    type G1 = G
+    //type U1 = U
+    //type B1 = B
+    //type W1 = W
+    //type R1 = R
+    //type T1 = T
+    //type G1 = G
     val proName1 = proName
     val isHidden1 = isHidden
     val isDefaultDesc1 = isDefaultDesc
-    val f1 = f
+    val queryToRep1 = queryToRep
+    //val f1 = f
 
-    val ushape1 = ushape
-    val e1 = e
+    //val ushape1 = ushape
+    //val e1 = e
 
     val shape1 = this.shape
     val valueTypeTag1 = this.valueTypeTag
     val jsonEncoder1 = this.jsonEncoder
     val orderTargetName1 = orderTargetName
     val sqlOrder1 = sqlOrder
-    new SqlGRep[S, R, G, T1] {
-      override type U = U1
-      override type B = B1
-      override type W = W1
-      //override type T = T1
-      //override type G = G1
+    new SqlGRep[S, R, T, G] {
+      //override type U = U1
+      //override type B = B1
+      //override type W = W1
       override val proName = proName1
       override val isHidden = isHidden1
       override val isDefaultDesc = isDefaultDesc1
-      override val f = f1
+      override val queryToRep = queryToRep1
+      //override val f = f1
 
-      override val ushape = ushape1
-      override val e = e1
+      //override val ushape = ushape1
+      //override val e = e1
 
       override val shape = shape1
       override val valueTypeTag = valueTypeTag1

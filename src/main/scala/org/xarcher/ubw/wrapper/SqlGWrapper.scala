@@ -253,7 +253,7 @@ trait SelectGRep[S] {
   val queryGen: Query[S, _, Seq] => ColType
   val orderGen: Map[String, TargetColType => ColumnOrdered[_]]
 
-  def append[RT, G1, T1](baseRep: SqlGRep[S, RT, G1, T1]): SelectGRep[S] = {
+  def append[RT, G1, T1](baseRep: SqlGRep[S, RT, T1, G1]): SelectGRep[S] = {
     type ColType1 = (ColType, RT)
     type ValType1 = (ValType, T1)
     type TargetColType1 = (TargetColType, G1)
@@ -322,7 +322,7 @@ trait SelectGRep[S] {
 
 object SelectGRep {
 
-  def head[S, RT, G1, T1](baseRep: SqlGRep[S, RT, G1, T1]): SelectGRep[S] = {
+  def head[S, RT, G1, T1](baseRep: SqlGRep[S, RT, T1, G1]): SelectGRep[S] = {
     new SelectGRep[S] {
       override type ColType = Tuple1[RT]
       override type ValType = Tuple1[T1]
