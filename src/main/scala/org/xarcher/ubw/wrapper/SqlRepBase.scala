@@ -1,6 +1,7 @@
 package org.xarcher.ubw.wrapper
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
+import org.xarcher.cpoi.{CellData, WriteableCellOperationAbs}
 
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
@@ -25,6 +26,9 @@ trait SlickData {
   }
 
   val typeTag: WeakTypeTag[DataType]
+
+  val poiWriter: WriteableCellOperationAbs[DataType]
+  lazy val cellData = CellData(Option(data))(poiWriter)
 
   override def toString = s"SlickData(property=$property,data=$data,type=${typeTag.tpe})"
 
@@ -80,6 +84,7 @@ sealed trait SqlRepBase[S, R, T, G] {
   val shape: Shape[_ <: FlatShapeLevel, R, T, G]
   val valueTypeTag: WeakTypeTag[T]
   val jsonEncoder: Encoder[T]
+  val poiWritter: WriteableCellOperationAbs[T]
   /**
     * 如果同时拥有 orderTarget 和 ordereImplicit，以 orderTarget 为先
     */
@@ -163,6 +168,7 @@ trait SqlRep[S, R, T, G] extends SqlRepBase[S, R, T, G] {
     val jsonEncoder1 = this.jsonEncoder
     val orderTargetName1 = orderTargetName
     val sqlOrder1 = sqlOrder
+    val poiWritter1 = this.poiWritter
     new SqlRep[S, R, T1, G1] {
       //override type T = T1
       //override type G = G1
@@ -175,6 +181,7 @@ trait SqlRep[S, R, T, G] extends SqlRepBase[S, R, T, G] {
       override val jsonEncoder = jsonEncoder1
       override val orderTargetName = orderTargetName1
       override val sqlOrder = sqlOrder1
+      override val poiWritter = poiWritter1
     }.asInstanceOf[this.type]
   }
 
@@ -218,7 +225,7 @@ trait SqlMiddleRep[S, R, T, G] {
     e(query1)
   }
 
-  def as(columnName: String)(implicit jsonEncoder1: Encoder[T], valueTypeTag1: WeakTypeTag[T]) = {
+  def as(columnName: String)(implicit jsonEncoder1: Encoder[T], poiWritter1: WriteableCellOperationAbs[T], valueTypeTag1: WeakTypeTag[T]) = {
 
     val f1 = this.f
 
@@ -244,6 +251,7 @@ trait SqlMiddleRep[S, R, T, G] {
       override val isHidden = false
       override val isDefaultDesc = true
       override val shape = mshape
+      override val poiWritter = poiWritter1
     }
   }
 
@@ -308,6 +316,7 @@ trait SqlGRep[S, R, T, G] extends SqlRepBase[S, R, T, G] {
     val shape1 = this.shape
     val valueTypeTag1 = this.valueTypeTag
     val jsonEncoder1 = this.jsonEncoder
+    val poiWritter1 = this.poiWritter
     val orderTargetName1 = orderTargetName
     val sqlOrder1 = sqlOrder
     new SqlGRep[S, R, T, G] {
@@ -328,6 +337,7 @@ trait SqlGRep[S, R, T, G] extends SqlRepBase[S, R, T, G] {
       override val jsonEncoder = jsonEncoder1
       override val orderTargetName = orderTargetName1
       override val sqlOrder = sqlOrder1
+      override val poiWritter = poiWritter1
     }.asInstanceOf[this.type]
   }
 

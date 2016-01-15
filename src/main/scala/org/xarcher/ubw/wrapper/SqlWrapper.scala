@@ -249,6 +249,7 @@ trait SelectRep[S] {
         override val data = appendValue
         override val jsonEncoder = baseRep.jsonEncoder
         override val typeTag = baseRep.valueTypeTag
+        override val poiWriter = baseRep.poiWritter
       }
       baseList ::: appendSlickData :: Nil
     }
@@ -261,6 +262,7 @@ trait SelectRep[S] {
         override val data = appendValue
         override val jsonEncoder = baseRep.jsonEncoder
         override val typeTag = baseRep.valueTypeTag
+        override val poiWriter = baseRep.poiWritter
       }
       baseList + (baseRep.proName -> appendSlickData)
     }
@@ -317,6 +319,7 @@ object SelectRep {
           override val data = baseVal._1
           override val jsonEncoder = baseRep.jsonEncoder
           override val typeTag = baseRep.valueTypeTag
+          override val poiWriter = baseRep.poiWritter
         }
         initValue :: Nil
       }
@@ -327,6 +330,7 @@ object SelectRep {
           override val data = baseVal._1
           override val jsonEncoder = baseRep.jsonEncoder
           override val typeTag = baseRep.valueTypeTag
+          override val poiWriter = baseRep.poiWritter
         }
         Map(baseRep.proName -> initValue)
       }
