@@ -123,29 +123,23 @@ case class SqlWrapper[S](
         fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
       })
 
-      val baseQuery =
-      //groupBy match {
-        //case Some(eachGroupBy) =>
-          //codeSortQuery.groupBy(eachGroupBy.convert)(eachGroupBy.kshape, eachGroupBy.vshape).flatMap { case (key, valueQuery) => valueQuery.map(repGens.repGen(_))(repGens.shape) }
-        //case _ =>
-        {
-          val resultQuery = codeSortQuery.map(repGens.repGen(_))(repGens.shape)
-          limit.orders.foldLeft(resultQuery) { case (eachQuery, ColumnOrder(eachOrderName, eachIsDesc)) =>
-            orderMap.get(eachOrderName) match {
-              case Some(convert) =>
-                eachQuery.sortBy(s => {
-                  val colOrder = convert(s)
-                  if (eachIsDesc)
-                    colOrder.desc.nullsLast
-                  else
-                    colOrder.asc.nullsLast
-                })
-              case _ =>
-                eachQuery
-            }
+      val baseQuery = {
+        val resultQuery = codeSortQuery.map(repGens.repGen(_))(repGens.shape)
+        limit.orders.foldLeft(resultQuery) { case (eachQuery, ColumnOrder(eachOrderName, eachIsDesc)) =>
+          orderMap.get(eachOrderName) match {
+            case Some(convert) =>
+              eachQuery.sortBy(s => {
+                val colOrder = convert(s)
+                if (eachIsDesc)
+                  colOrder.desc.nullsLast
+                else
+                  colOrder.asc.nullsLast
+              })
+            case _ =>
+              eachQuery
           }
         }
-      //}
+      }
 
       limit match {
         case SlickParam(_, Some(SlickRange(drop1, take1)), Some(SlickPage(pageIndex1, pageSize1))) =>

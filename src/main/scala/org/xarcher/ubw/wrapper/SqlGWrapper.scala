@@ -159,7 +159,17 @@ case class SqlGWrapper[S](
           }*/
       }
 
-      limit match {
+      //SlickParam 的 page 和 range 会自动被忽略
+      baseQuery.result.map(s => {
+        val dataGen = s.toList.map(t => {
+          val listPre = () => repGens.listGen(t)
+          val mapPre = () => repGens.mapGen(t)
+          DataGen(list = listPre, map = mapPre)
+        })
+        ResultGen(dataGen, s.size)
+      })
+
+      /*limit match {
         case SlickParam(_, Some(SlickRange(drop1, take1)), Some(SlickPage(pageIndex1, pageSize1))) =>
           val startCount = Math.max(0, drop1)
           val pageIndex = Math.max(0, pageIndex1)
@@ -225,7 +235,7 @@ case class SqlGWrapper[S](
             })
             ResultGen(dataGen, s.size)
           })
-      }
+      }*/
 
     }
     QueryInfo(properties = this.properties, dataGen = dataFun)
