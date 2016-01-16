@@ -30,6 +30,8 @@ trait SlickData {
   val poiWriter: WriteableCellOperationAbs[DataType]
   lazy val cellData = CellData(Option(data))(poiWriter)
 
+  val isHidden: Boolean
+
   override def toString = s"SlickData(property=$property,data=$data,type=${typeTag.tpe})"
 
 }

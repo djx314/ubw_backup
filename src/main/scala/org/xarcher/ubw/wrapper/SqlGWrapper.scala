@@ -278,6 +278,7 @@ trait SelectGRep[S] {
         override val jsonEncoder = baseRep.jsonEncoder
         override val typeTag = baseRep.valueTypeTag
         override val poiWriter = baseRep.poiWritter
+        override val isHidden = baseRep.isHidden
       }
       baseList ::: appendSlickData :: Nil
     }
@@ -291,6 +292,7 @@ trait SelectGRep[S] {
         override val jsonEncoder = baseRep.jsonEncoder
         override val typeTag = baseRep.valueTypeTag
         override val poiWriter = baseRep.poiWritter
+        override val isHidden = baseRep.isHidden
       }
       baseList + (baseRep.proName -> appendSlickData)
     }
@@ -348,6 +350,7 @@ object SelectGRep {
           override val jsonEncoder = baseRep.jsonEncoder
           override val typeTag = baseRep.valueTypeTag
           override val poiWriter = baseRep.poiWritter
+          override val isHidden = baseRep.isHidden
         }
         initValue :: Nil
       }
@@ -359,6 +362,7 @@ object SelectGRep {
           override val jsonEncoder = baseRep.jsonEncoder
           override val typeTag = baseRep.valueTypeTag
           override val poiWriter = baseRep.poiWritter
+          override val isHidden = baseRep.isHidden
         }
         Map(baseRep.proName -> initValue)
       }
