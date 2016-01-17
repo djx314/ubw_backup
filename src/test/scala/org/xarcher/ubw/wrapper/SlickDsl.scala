@@ -196,8 +196,6 @@ with OneInstancePerTest {
       //.group_by_ext { case (table1, table2) => table2.wang }
     }
 
-    println("11" * 100)
-
     println(db.run {
       (for {
         cat <- catTq1
@@ -214,8 +212,6 @@ with OneInstancePerTest {
       .sortBy(_._1)
       .result
     }.futureValue(oneSecondTimeOut))
-
-    println("22" * 100)
 
     object ccdd {
       def aabb(permissionTq: Query[PermissionTable, Permission, Seq], catTq: Query[CatTable, Cat, Seq]) = {
@@ -256,9 +252,7 @@ with OneInstancePerTest {
 
     db.run(dd.dataGen(SlickParam())).map(s => println(s.data.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
 
-    println("33" * 100)
     db.run(dd.dataGen(SlickParam(orders = ColumnOrder("喵喵喵", true) :: ColumnOrder("十六夜的樱丘", true) :: Nil))).map(s => println(s.data.map(t => t.list()))).futureValue(oneSecondTimeOut)
-    println("44" * 100)
     println(dd.properties)
 
     val kakakbb = gselect(
