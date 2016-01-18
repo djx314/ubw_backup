@@ -102,7 +102,7 @@ with OneInstancePerTest {
     println("123456" * 100)
     println(
       db.run {
-        permissionTq1.filter(s => (s.typeName === "2333") and (true, s.name === "1234") or (true, s.id > 2333L)).result
+        permissionTq1.filter(s => ((s.id > 123456L) &&& (false, s.name === "5678") ||| false) &&& (false, s.name === "1234") ||| (true, s.id > 2333L)).result
       }.futureValue(oneSecondTimeOut)
     )
   }

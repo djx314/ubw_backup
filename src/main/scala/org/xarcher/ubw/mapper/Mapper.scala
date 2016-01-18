@@ -14,9 +14,9 @@ import slick.lifted._
 
 trait MapperHelper {
 
-  class FilterIfNeedHelper[P1](rep1: Rep[P1]) {
+  implicit class FilterIfNeedHelper[P1](rep1: Rep[P1]) {
 
-    def and[P2, R](need: Boolean, rep2: Rep[P2])
+    @inline def &&&[P2, R](need: Boolean, rep2: Rep[P2])
       (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R], convert: Rep[P1] => Rep[R]): Rep[R] = {
       if (need)
         new BooleanColumnExtensionMethods(rep1).&&(rep2)
@@ -24,16 +24,45 @@ trait MapperHelper {
         convert(rep1)
     }
 
-    def or[P2, R](need: Boolean, rep2: Rep[P2])
+    @inline def |||[P2, R](need: Boolean, rep2: Rep[P2])
       (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R], convert: Rep[P1] => Rep[R]): Rep[R] =
       if (need)
         new BooleanColumnExtensionMethods(rep1).||(rep2)
       else
         convert(rep1)
 
+    @inline def &&&[P2, R](rep2: Rep[P2])
+                          (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R]): Rep[R] = {
+      new BooleanColumnExtensionMethods(rep1).&&(rep2)
+    }
+
+    @inline def |||[P2, R](rep2: Rep[P2])
+                          (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R]): Rep[R] =
+      new BooleanColumnExtensionMethods(rep1).||(rep2)
+
   }
 
-  implicit def filterIfNeedHelper[P1](rep1: Rep[P1]) = new FilterIfNeedHelper[P1](rep1)
+  implicit class FilterIfNeedRepHelper[P1](repContent1: (Boolean, Rep[P1])) {
+
+    @inline def &&&[P2, R](rep2: Rep[P2])
+      (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R], convert: Rep[R] => Rep[P2]): Rep[P2] = {
+      val (need, rep1) = repContent1
+      if (need)
+        convert(new BooleanColumnExtensionMethods(rep1).&&(rep2))
+      else
+        rep2
+    }
+
+    @inline def |||[P2, R](rep2: Rep[P2])
+      (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R], convert: Rep[R] => Rep[P2]): Rep[P2] = {
+      val (need, rep1) = repContent1
+      if (need)
+        convert(new BooleanColumnExtensionMethods(rep1).||(rep2))
+      else
+        rep2
+    }
+
+  }
 
   trait NeedFilter {
 
