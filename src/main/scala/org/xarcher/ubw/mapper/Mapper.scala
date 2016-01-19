@@ -2,88 +2,47 @@ package org.xarcher.ubw.mapper
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 import org.xarcher.cpoi.{CellData, WriteableCellOperationAbs}
+import org.xarcher.ubw.wrapper.{QueryInfo, SqlWrapper, SqlRep}
 import slick.ast.TypedType
 
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 import scala.language.implicitConversions
+import scala.language.existentials
 import scala.reflect.runtime.universe._
 import slick.dbio._
 import slick.driver.{JdbcProfile, JdbcActionComponent}
 import slick.lifted._
 
-trait MapperHelper {
+trait Mapper {
 
-  implicit class FilterIfNeedHelper[P1](rep1: Rep[P1]) {
+  implicit class ubwQueryExtensionMethodImpl[E, U](query1: Query[E, U, Seq]) {
 
-    @inline def &&&[P2, R](need: Boolean, rep2: Rep[P2])
-      (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R], convert: Rep[P1] => Rep[R]): Rep[R] = {
-      if (need)
-        new BooleanColumnExtensionMethods(rep1).&&(rep2)
-      else
-        convert(rep1)
+    trait SqlWrapperHelper[E] {
+      val sqlWrapper: SqlWrapper[E]
+      val query: Query[E, _, Seq]
+      def result
+      (implicit
+       ec: ExecutionContext,
+       ev: Query[_, sqlWrapper.repGens.ValType, Seq] => JdbcActionComponent#StreamingQueryActionExtensionMethods[Seq[sqlWrapper.repGens.ValType], sqlWrapper.repGens.ValType],
+       av: Rep[Int] => JdbcProfile#QueryActionExtensionMethods[Int, NoStream]
+      ): QueryInfo = {
+        sqlWrapper.queryResult(query)(ec, ev, av)
+      }
     }
 
-    @inline def |||[P2, R](need: Boolean, rep2: Rep[P2])
-      (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R], convert: Rep[P1] => Rep[R]): Rep[R] =
-      if (need)
-        new BooleanColumnExtensionMethods(rep1).||(rep2)
-      else
-        convert(rep1)
-
-    @inline def &&&[P2, R](rep2: Rep[P2])
-                          (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R]): Rep[R] = {
-      new BooleanColumnExtensionMethods(rep1).&&(rep2)
-    }
-
-    @inline def |||[P2, R](rep2: Rep[P2])
-                          (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R]): Rep[R] =
-      new BooleanColumnExtensionMethods(rep1).||(rep2)
-
-  }
-
-  implicit class FilterIfNeedRepHelper[P1](repContent1: (Boolean, Rep[P1])) {
-
-    @inline def &&&[P2, R](rep2: Rep[P2])
-      (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R], convert: Rep[R] => Rep[P2]): Rep[P2] = {
-      val (need, rep1) = repContent1
-      if (need)
-        convert(new BooleanColumnExtensionMethods(rep1).&&(rep2))
-      else
-        rep2
-    }
-
-    @inline def |||[P2, R](rep2: Rep[P2])
-      (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R], convert: Rep[R] => Rep[P2]): Rep[P2] = {
-      val (need, rep1) = repContent1
-      if (need)
-        convert(new BooleanColumnExtensionMethods(rep1).||(rep2))
-      else
-        rep2
-    }
-
-  }
-
-  trait NeedFilter {
-
-    def &&[P1, P2, R](need: Boolean, rep1: Rep[P1], rep2: Rep[P2])
-    (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R])
-    : Rep[R] = {
-      new BooleanColumnExtensionMethods(rep1).&&(rep2)
-    }
-
-    def ||[P1, P2, R](need: Boolean, rep1: Rep[P1], rep2: Rep[P2])
-    (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R])
-    : Rep[R] = {
-      new BooleanColumnExtensionMethods(rep1).||(rep2)
-    }
-
-    def unary_![P1](need: Boolean, rep1: Rep[P1]): Rep[P1] = {
-      new BooleanColumnExtensionMethods(rep1).unary_!
+    def by(columns: SqlRep[E, _, _, _]*): SqlWrapperHelper[E] = {
+      val sqlWrapper1 = SqlWrapper(
+        select = columns.toList
+      )
+      new SqlWrapperHelper[E] {
+        override val sqlWrapper = sqlWrapper1
+        override val query = query1
+      }
     }
 
   }
 
 }
 
-object MapperHelper extends MapperHelper
+object Mapper extends Mapper

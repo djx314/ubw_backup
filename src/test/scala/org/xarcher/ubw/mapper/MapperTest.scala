@@ -16,11 +16,12 @@ import scala.language.higherKinds
 import scala.language.implicitConversions
 import scala.language.postfixOps
 import slick.driver.H2Driver.api._
+import org.xarcher.ubw.wrapper._
 
 /**
   * Created by djx314 on 15-6-22.
   */
-case class Permission(
+/*case class Permission(
   id: Option[Long] = None,
   name: String,
   typeName: Option[String] = Some("2333"),
@@ -48,7 +49,7 @@ class CatTable(tag: slick.driver.H2Driver.api.Tag) extends Table[Cat](tag, "S_CA
   def wang = column[String]("WANG")
 
   def * = (id.?, miao, wang) <> (Cat.tupled, Cat.unapply _)
-}
+}*/
 
 class SelectTest extends FlatSpec
 with ScalaFutures
@@ -58,7 +59,7 @@ with OneInstancePerTest {
 
   lazy val db = {
     val datasource = new JdbcDataSource()
-    datasource.setUrl(s"jdbc:h2:mem:miaoTest;DB_CLOSE_DELAY=-1")
+    datasource.setUrl(s"jdbc:h2:mem:miaonimeia;DB_CLOSE_DELAY=-1")
     Database.forDataSource(datasource)
   }
 
@@ -98,12 +99,31 @@ with OneInstancePerTest {
 
   import MapperHelper._
 
-  "aa" should "bb" in {
-    println("123456" * 100)
+  "omg" should "bb" in {
     println(
       db.run {
         permissionTq1.filter(s => ((s.id > 123456L) &&& (false, s.name === "5678") ||| false) &&& (false, s.name === "1234") ||| (true, s.id > 2333L)).result
       }.futureValue(oneSecondTimeOut)
+    )
+  }
+
+  "aa" should "bb" in {
+    println("123456" * 100)
+
+    import org.xarcher.ubw.mapper.Mapper._
+
+    println(
+      db.run {
+        (for {
+          permission <- permissionTq1
+          cat <- catTq1
+        } yield {
+          permission -> cat
+        })
+        .by(
+          { t: (PermissionTable, CatTable) => t._1.name } as_ext "hahahhah"
+        ).result.dataGen(SlickParam(orders = ColumnOrder("喵了个咪", true) :: Nil))
+      }.futureValue(oneSecondTimeOut).data.map(_.map()).mkString("\n")
     )
   }
 
