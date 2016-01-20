@@ -2,7 +2,6 @@ package org.xarcher.ubw.mapper
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 import org.xarcher.cpoi.{CellData, WriteableCellOperationAbs}
-import slick.ast.TypedType
 
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
@@ -37,14 +36,14 @@ trait SlickData {
 
 }
 
-trait SqlFilter[S] {
+/*trait SqlFilter[S] {
 
   type ResultType <: Rep[_]
   type TableType = S
   val wt: CanBeQueryCondition[ResultType]
   val convert: TableType => ResultType
 
-}
+}*/
 
 trait SqlRepOrder[S] {
 
@@ -55,16 +54,16 @@ trait SqlRepOrder[S] {
 
 }
 
-trait SqlOrder[S] {
+/*trait SqlOrder[S] {
 
   type RepType
   type TableType = S
   val wt: RepType => Ordered
   val convert: TableType => RepType
 
-}
+}*/
 
-trait SqlGroupBy[S] {
+/*trait SqlGroupBy[S] {
 
   type RepType
   type TableType = S
@@ -76,7 +75,7 @@ trait SqlGroupBy[S] {
   val kshape: Shape[_ <: FlatShapeLevel, RepType, T, G]
   val vshape: Shape[_ <: FlatShapeLevel, TableType, _, TableType]
 
-}
+}*/
 
 sealed trait SqlRepBase[S, R, T, G] {
 
