@@ -1,27 +1,17 @@
-package org.xarcher.ubw.mapper
+package org.xarcher.ubw
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
-import org.xarcher.cpoi.{CellData, WriteableCellOperationAbs}
-import slick.ast.TypedType
 
-import scala.concurrent.ExecutionContext
-import scala.language.higherKinds
-import scala.language.implicitConversions
-import scala.language.existentials
-import scala.reflect.runtime.universe._
-import slick.dbio._
-import slick.driver.{JdbcProfile, JdbcActionComponent}
+import org.xarcher.cpoi.WriteableCellOperationAbs
+
 import slick.lifted._
 
-trait Mapper {
+import scala.reflect.runtime.universe._
 
-  implicit class ubwQueryExtensionMethodImpl[E, U](query1: Query[E, U, Seq]) {
-
-    def by(columns: SqlRep[E, _, _, _]*): SqlWrapper[E] = {
-      SqlWrapper[E](select = columns.toList, query = query1)
-    }
-
-  }
+/**
+  * Created by Administrator on 2015/12/9.
+  */
+/*package object mapper extends Mapper {
 
   implicit class miaolegemiRepExtensionMethod[S1, R1](repLike: S1 => R1) {
 
@@ -46,6 +36,4 @@ trait Mapper {
 
   }
 
-}
-
-object Mapper extends Mapper
+}*/

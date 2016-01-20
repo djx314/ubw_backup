@@ -9,19 +9,17 @@ import org.scalatest.concurrent._
 import org.scalatest.time.{Millis, Span}
 import org.xarcher.cpoi.PoiOperations
 
-import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.existentials
 import scala.language.higherKinds
 import scala.language.implicitConversions
 import scala.language.postfixOps
 import slick.driver.H2Driver.api._
-import org.xarcher.ubw.wrapper._
 
 /**
   * Created by djx314 on 15-6-22.
   */
-/*case class Permission(
+case class Permission(
   id: Option[Long] = None,
   name: String,
   typeName: Option[String] = Some("2333"),
@@ -49,7 +47,7 @@ class CatTable(tag: slick.driver.H2Driver.api.Tag) extends Table[Cat](tag, "S_CA
   def wang = column[String]("WANG")
 
   def * = (id.?, miao, wang) <> (Cat.tupled, Cat.unapply _)
-}*/
+}
 
 class SelectTest extends FlatSpec
 with ScalaFutures
@@ -95,9 +93,9 @@ with OneInstancePerTest {
 
   object poiOperations extends PoiOperations
 
-  import poiOperations._
-
   import MapperHelper._
+
+  import poiOperations._
 
   "omg" should "bb" in {
     println(
@@ -121,8 +119,9 @@ with OneInstancePerTest {
           permission -> cat
         })
         .by(
-          { t: (PermissionTable, CatTable) => t._1.name } as_ext "hahahhah"
-        ).result.dataGen(SlickParam(orders = ColumnOrder("喵了个咪", true) :: Nil))
+          { t: (PermissionTable, CatTable) => t._1.name } as_ext "hahahhah" order true,
+          { t: (PermissionTable, CatTable) => t._1.typeName } as_ext "miaomiaomiaomiao" order true
+        ).result.dataGen(SlickParam(orders = ColumnOrder("miaomiaomiaomiao", true) :: Nil))
       }.futureValue(oneSecondTimeOut).data.map(_.map()).mkString("\n")
     )
   }
