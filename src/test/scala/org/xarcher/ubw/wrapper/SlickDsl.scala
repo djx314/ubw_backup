@@ -7,6 +7,7 @@ import org.scalatest._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent._
 import org.scalatest.time.{Millis, Span}
+import org.xarcher.cpoi.PoiOperations
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -137,9 +138,10 @@ with OneInstancePerTest {
     db.run((permissionTq1.schema ++ catTq1.schema).drop).futureValue(oneSecondTimeOut)
   }
 
+  object poiOperations extends PoiOperations
+  import poiOperations._
+
   "aa" should "bb" in {
-
-
 
     def bb = {
       select(
@@ -194,8 +196,6 @@ with OneInstancePerTest {
       //.group_by_ext { case (table1, table2) => table2.wang }
     }
 
-    println("11" * 100)
-
     println(db.run {
       (for {
         cat <- catTq1
@@ -212,8 +212,6 @@ with OneInstancePerTest {
       .sortBy(_._1)
       .result
     }.futureValue(oneSecondTimeOut))
-
-    println("22" * 100)
 
     object ccdd {
       def aabb(permissionTq: Query[PermissionTable, Permission, Seq], catTq: Query[CatTable, Cat, Seq]) = {
@@ -234,11 +232,11 @@ with OneInstancePerTest {
     def dd = from {
       (cat: CatTable, permission: PermissionTable) =>
         org.xarcher.ubw.wrapper.select(
-          permission as "喵了个咪",
+          permission.typeName as "喵了个咪",
           permission.name as "喵" order true,
           cat.wang as "十六夜的樱丘" order true,
-          cat.id as "你妹",
-          cat as "卖了个萌",
+          cat.id.? as "你妹",
+          cat.miao as "卖了个萌",
           permission.typeName as "喵喵喵" order true
         )
         .where(permission.describe like "%%")
@@ -254,18 +252,16 @@ with OneInstancePerTest {
 
     db.run(dd.dataGen(SlickParam())).map(s => println(s.data.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
 
-    println("33" * 100)
     db.run(dd.dataGen(SlickParam(orders = ColumnOrder("喵喵喵", true) :: ColumnOrder("十六夜的樱丘", true) :: Nil))).map(s => println(s.data.map(t => t.list()))).futureValue(oneSecondTimeOut)
-    println("44" * 100)
     println(dd.properties)
 
     val kakakbb = gselect(
       ((table1: (CatTable, PermissionTable)) => {
         table1._1.id
-      }) as_ext "喵喵喵喵喵" asQ ((rep1Query: Query[Rep[Long], Long, Seq]) => rep1Query.sum) order true,
+      }).asQ_ext asM (_.sum) as "喵喵喵喵喵" order true,
       ((table1: (CatTable, PermissionTable)) => {
         table1._2.id
-      }) as_ext "喵了个咪" asQ ((rep1Query: Query[Rep[Long], Long, Seq]) => rep1Query.avg) order true
+      }).asQ_ext asM (_.avg) as "喵了个咪" order true
     )
     .group_by_ext { case (table1, table2) => table1.miao }
     .where_ext { case (table1, table2) => table1.wang === table2.name }
@@ -278,6 +274,25 @@ with OneInstancePerTest {
         cat -> permission
       } }.dataGen(SlickParam(orders = ColumnOrder("喵了个咪", true) :: Nil))
     ).map(s => println(s.data.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
+
+    val bababbakkdk =
+      Ubw.gfrom(
+        (cat: CatTable, permission: PermissionTable) => {
+          org.xarcher.ubw.wrapper.gselect(
+            cat.id.asQ asM (_.sum) as "喵喵喵喵喵11111111" order true,
+            permission.id.asQ asM (_.avg) as "喵了个咪11111111" order true,
+            permission.id.?.asQ asM (_.countDefined) as "喵了个咪11111111" order true
+          )
+          .group_by(cat.miao)
+          .where(cat.wang === permission.name)
+        }
+      )
+
+    println(
+      db.run(
+        bababbakkdk.dataGen(SlickParam(orders = ColumnOrder("喵了个咪", true) :: Nil))
+      ).map(s => println(s.data.map(t => t.list().map(u => u.property -> u.toJson)))).futureValue(oneSecondTimeOut)
+    )
 
   }
 
