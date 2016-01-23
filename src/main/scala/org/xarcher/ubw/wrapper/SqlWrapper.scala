@@ -12,8 +12,8 @@ import slick.lifted._
 case class SqlWrapper[S](
   select: List[SqlRep[S, _, _, _]],
   filters: List[SqlFilter[S]] = Nil,
-  orders: List[SqlOrder[S]] = Nil,
-  groupBy: Option[SqlGroupBy[S]] = None
+  orders: List[SqlOrder[S]] = Nil//,
+  //groupBy: Option[SqlGroupBy[S]] = None
 ) {
 
   def where_ext[R <: Rep[_] : CanBeQueryCondition](f: S => R): this.type = {
@@ -66,7 +66,7 @@ case class SqlWrapper[S](
 
   def order_by_if[K](need: Boolean)(f: K)(implicit wtImplicit: K => Ordered): this.type = ???
 
-  def group_by_ext[K1, T1, G1](f: S => K1)(implicit kshape1: Shape[_ <: FlatShapeLevel, K1, T1, G1], vshape1: Shape[_ <: FlatShapeLevel, S, _, S]): this.type = {
+  /*def group_by_ext[K1, T1, G1](f: S => K1)(implicit kshape1: Shape[_ <: FlatShapeLevel, K1, T1, G1], vshape1: Shape[_ <: FlatShapeLevel, S, _, S]): this.type = {
     val groupBy1 = new SqlGroupBy[S] {
       override type RepType = K1
       override type T = T1
@@ -81,7 +81,7 @@ case class SqlWrapper[S](
     this.copy(groupBy = Option(groupBy1)).asInstanceOf[this.type]
   }
 
-  def group_by[K1, T1, G1](f: K1)(implicit kshape1: Shape[_ <: FlatShapeLevel, K1, T1, G1]): this.type = ???
+  def group_by[K1, T1, G1](f: K1)(implicit kshape1: Shape[_ <: FlatShapeLevel, K1, T1, G1]): this.type = ???*/
 
   lazy val repGens = {
     //暂时隐藏 filter，估计以后也不会再开了
@@ -123,29 +123,23 @@ case class SqlWrapper[S](
         fQuery.sortBy(table1 => eachOrder.wt(eachOrder.convert(table1)))
       })
 
-      val baseQuery =
-      //groupBy match {
-        //case Some(eachGroupBy) =>
-          //codeSortQuery.groupBy(eachGroupBy.convert)(eachGroupBy.kshape, eachGroupBy.vshape).flatMap { case (key, valueQuery) => valueQuery.map(repGens.repGen(_))(repGens.shape) }
-        //case _ =>
-        {
-          val resultQuery = codeSortQuery.map(repGens.repGen(_))(repGens.shape)
-          limit.orders.foldLeft(resultQuery) { case (eachQuery, ColumnOrder(eachOrderName, eachIsDesc)) =>
-            orderMap.get(eachOrderName) match {
-              case Some(convert) =>
-                eachQuery.sortBy(s => {
-                  val colOrder = convert(s)
-                  if (eachIsDesc)
-                    colOrder.desc.nullsLast
-                  else
-                    colOrder.asc.nullsLast
-                })
-              case _ =>
-                eachQuery
-            }
+      val baseQuery = {
+        val resultQuery = codeSortQuery.map(repGens.repGen(_))(repGens.shape)
+        limit.orders.foldLeft(resultQuery) { case (eachQuery, ColumnOrder(eachOrderName, eachIsDesc)) =>
+          orderMap.get(eachOrderName) match {
+            case Some(convert) =>
+              eachQuery.sortBy(s => {
+                val colOrder = convert(s)
+                if (eachIsDesc)
+                  colOrder.desc.nullsLast
+                else
+                  colOrder.asc.nullsLast
+              })
+            case _ =>
+              eachQuery
           }
         }
-      //}
+      }
 
       limit match {
         case SlickParam(_, Some(SlickRange(drop1, take1)), Some(SlickPage(pageIndex1, pageSize1))) =>
@@ -223,7 +217,7 @@ case class SqlWrapper[S](
 
 object select {
 
-  def apply[S](columns: SqlRep[S, _, _, _]*) = {
+  def apply[S](columns: SqlRep[S, _, _, _]*): SqlWrapper[S] = {
     SqlWrapper(
       select = columns.toList
     )
@@ -241,7 +235,7 @@ trait SelectRep[S] {
   val repGen: S => ColType
   val orderGen: Map[String, TargetColType => ColumnOrdered[_]]
 
-  def append[RT, G1, T1](baseRep: SqlRep[S, RT, G1, T1]): SelectRep[S] = {
+  def append[RT, G1, T1](baseRep: SqlRep[S, RT, T1, G1]): SelectRep[S] = {
     type ColType1 = (ColType, RT)
     type ValType1 = (ValType, T1/*baseRep.T*/)
     type TargetColType1 = (TargetColType, G1)
@@ -255,6 +249,8 @@ trait SelectRep[S] {
         override val data = appendValue
         override val jsonEncoder = baseRep.jsonEncoder
         override val typeTag = baseRep.valueTypeTag
+        override val poiWriter = baseRep.poiWritter
+        override val isHidden = baseRep.isHidden
       }
       baseList ::: appendSlickData :: Nil
     }
@@ -267,6 +263,8 @@ trait SelectRep[S] {
         override val data = appendValue
         override val jsonEncoder = baseRep.jsonEncoder
         override val typeTag = baseRep.valueTypeTag
+        override val poiWriter = baseRep.poiWritter
+        override val isHidden = baseRep.isHidden
       }
       baseList + (baseRep.proName -> appendSlickData)
     }
@@ -310,7 +308,7 @@ trait SelectRep[S] {
 
 object SelectRep {
 
-  def head[S, RT, G1, T1](baseRep: SqlRep[S, RT, G1, T1]): SelectRep[S] = {
+  def head[S, RT, G1, T1](baseRep: SqlRep[S, RT, T1, G1]): SelectRep[S] = {
     new SelectRep[S] {
       override type ColType = Tuple1[RT]
       override type ValType = Tuple1[T1]
@@ -323,6 +321,8 @@ object SelectRep {
           override val data = baseVal._1
           override val jsonEncoder = baseRep.jsonEncoder
           override val typeTag = baseRep.valueTypeTag
+          override val poiWriter = baseRep.poiWritter
+          override val isHidden = baseRep.isHidden
         }
         initValue :: Nil
       }
@@ -333,6 +333,8 @@ object SelectRep {
           override val data = baseVal._1
           override val jsonEncoder = baseRep.jsonEncoder
           override val typeTag = baseRep.valueTypeTag
+          override val poiWriter = baseRep.poiWritter
+          override val isHidden = baseRep.isHidden
         }
         Map(baseRep.proName -> initValue)
       }

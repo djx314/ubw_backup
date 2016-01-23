@@ -159,7 +159,17 @@ case class SqlGWrapper[S](
           }*/
       }
 
-      limit match {
+      //SlickParam 的 page 和 range 会自动被忽略
+      baseQuery.result.map(s => {
+        val dataGen = s.toList.map(t => {
+          val listPre = () => repGens.listGen(t)
+          val mapPre = () => repGens.mapGen(t)
+          DataGen(list = listPre, map = mapPre)
+        })
+        ResultGen(dataGen, s.size)
+      })
+
+      /*limit match {
         case SlickParam(_, Some(SlickRange(drop1, take1)), Some(SlickPage(pageIndex1, pageSize1))) =>
           val startCount = Math.max(0, drop1)
           val pageIndex = Math.max(0, pageIndex1)
@@ -225,7 +235,7 @@ case class SqlGWrapper[S](
             })
             ResultGen(dataGen, s.size)
           })
-      }
+      }*/
 
     }
     QueryInfo(properties = this.properties, dataGen = dataFun)
@@ -235,7 +245,7 @@ case class SqlGWrapper[S](
 
 object gselect {
 
-  def apply[S](columns: SqlGRep[S, _, _, _]*) = {
+  def apply[S](columns: SqlGRep[S, _, _, _]*): SqlGWrapper[S] = {
     SqlGWrapper(
       select = columns.toList
     )
@@ -253,7 +263,7 @@ trait SelectGRep[S] {
   val queryGen: Query[S, _, Seq] => ColType
   val orderGen: Map[String, TargetColType => ColumnOrdered[_]]
 
-  def append[RT, G1, T1](baseRep: SqlGRep[S, RT, G1, T1]): SelectGRep[S] = {
+  def append[RT, G1, T1](baseRep: SqlGRep[S, RT, T1, G1]): SelectGRep[S] = {
     type ColType1 = (ColType, RT)
     type ValType1 = (ValType, T1)
     type TargetColType1 = (TargetColType, G1)
@@ -267,6 +277,8 @@ trait SelectGRep[S] {
         override val data = appendValue
         override val jsonEncoder = baseRep.jsonEncoder
         override val typeTag = baseRep.valueTypeTag
+        override val poiWriter = baseRep.poiWritter
+        override val isHidden = baseRep.isHidden
       }
       baseList ::: appendSlickData :: Nil
     }
@@ -279,6 +291,8 @@ trait SelectGRep[S] {
         override val data = appendValue
         override val jsonEncoder = baseRep.jsonEncoder
         override val typeTag = baseRep.valueTypeTag
+        override val poiWriter = baseRep.poiWritter
+        override val isHidden = baseRep.isHidden
       }
       baseList + (baseRep.proName -> appendSlickData)
     }
@@ -322,7 +336,7 @@ trait SelectGRep[S] {
 
 object SelectGRep {
 
-  def head[S, RT, G1, T1](baseRep: SqlGRep[S, RT, G1, T1]): SelectGRep[S] = {
+  def head[S, RT, G1, T1](baseRep: SqlGRep[S, RT, T1, G1]): SelectGRep[S] = {
     new SelectGRep[S] {
       override type ColType = Tuple1[RT]
       override type ValType = Tuple1[T1]
@@ -335,6 +349,8 @@ object SelectGRep {
           override val data = baseVal._1
           override val jsonEncoder = baseRep.jsonEncoder
           override val typeTag = baseRep.valueTypeTag
+          override val poiWriter = baseRep.poiWritter
+          override val isHidden = baseRep.isHidden
         }
         initValue :: Nil
       }
@@ -345,6 +361,8 @@ object SelectGRep {
           override val data = baseVal._1
           override val jsonEncoder = baseRep.jsonEncoder
           override val typeTag = baseRep.valueTypeTag
+          override val poiWriter = baseRep.poiWritter
+          override val isHidden = baseRep.isHidden
         }
         Map(baseRep.proName -> initValue)
       }
