@@ -5,7 +5,7 @@ import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 import org.xarcher.cpoi.{CellData, WriteableCellOperationAbs}
 
 import scala.reflect.runtime.universe._
-import slick.lifted.{FlatShapeLevel, Shape, ColumnOrdered, Rep}
+import slick.lifted._
 
 
 trait SlickData {
