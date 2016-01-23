@@ -47,7 +47,7 @@ libraryDependencies ++= {
     "com.typesafe.slick" %% "slick-hikaricp" % slickVersion exclude("com.zaxxer", "HikariCP-java6"),
     "com.chuusai" %% "shapeless" % "2.2.5",
     "org.scalatest" %% "scalatest" % "2.2.4" % "test",
-    "com.h2database" % "h2" % "1.4.181" % "test",
+    "com.h2database" % "h2" % "1.4.181"/*% "test"*/,
     "org.apache.commons" % "commons-lang3" % "3.3.2",
     "org.joda" % "joda-convert" % "1.7",
     "com.vividsolutions" % "jts" % "1.13",

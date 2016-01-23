@@ -108,7 +108,7 @@ with OneInstancePerTest {
   "aa" should "bb" in {
     println("123456" * 100)
 
-    import org.xarcher.ubw.mapper.Mapper._
+    /*import org.xarcher.ubw.mapper.Mapper._
 
     println(
       db.run {
@@ -123,6 +123,18 @@ with OneInstancePerTest {
           { t: (PermissionTable, CatTable) => t._1.typeName } as_ext "miaomiaomiaomiao" order true
         ).result.dataGen(SlickParam(orders = ColumnOrder("miaomiaomiaomiao", true) :: Nil))
       }.futureValue(oneSecondTimeOut).data.map(_.map()).mkString("\n")
+    )*/
+
+    println(
+      db.run {
+        (for {
+          permission <- permissionTq1
+          cat <- catTq1
+          _ <- Query(())
+        } yield {
+          permission -> cat
+        }).result
+      }.map(_.toList).futureValue(oneSecondTimeOut).mkString("\n")
     )
   }
 

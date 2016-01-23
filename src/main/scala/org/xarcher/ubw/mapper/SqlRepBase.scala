@@ -1,4 +1,4 @@
-package org.xarcher.ubw.mapper
+/*package org.xarcher.ubw.mapper
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 import org.xarcher.cpoi.{CellData, WriteableCellOperationAbs}
@@ -375,4 +375,4 @@ case class QueryInfo(properties: List[PropertyInfo], dataGen: SlickParam => DBIO
   }
 
 }
-case class TableData(properties: List[PropertyInfo], data: List[Map[String, Json]], sum: Long)
+case class TableData(properties: List[PropertyInfo], data: List[Map[String, Json]], sum: Long)*/
