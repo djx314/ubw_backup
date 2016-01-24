@@ -176,15 +176,19 @@ object TestCompile extends App {
     case e: Exception => e.printStackTrace
   }
 
+  import org.xarcher.ubw._
+
   println{
     Await.result(db.run {
       (for {
-        permission <- permissionTq1.u if permission.describe like "%%"
-        cat <- catTq1.u if permission.id === cat.id
+        permission <- permissionTq1.ubw if permission.describe like "%%"
+        cat <- catTq1.ubw if permission.id === cat.id
       } yield {
         List(permission.typeName as "sdffdsfrett", cat.id as "喵喵喵喵" order true)
       }).result.dataGen(SlickParam(orders = List(ColumnOrder("喵喵喵喵", true)), page = Option(SlickPage(2, 10))))
     }, scala.concurrent.duration.Duration.Inf).data.map(s => s.list()).mkString("\n")
+
+    permissionTq1.ubw.uFlatMap(permission => catTq1.ubw.uMap(cat => cat.id -> permission.typeName))
   }
 
   Await.result(db.run((permissionTq1.schema ++ catTq1.schema).drop), scala.concurrent.duration.Duration.Inf)
