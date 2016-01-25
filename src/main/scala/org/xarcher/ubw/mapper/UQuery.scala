@@ -22,9 +22,28 @@ trait UQuery {
     repToDBIO: Rep[Int] => BasicProfile#QueryActionExtensionMethods[Int, NoStream],
     ec: ExecutionContext
   ): QueryInfo = {
+    result(Nil)
+  }
+
+  def result(orderColumn: String, isDesc: Boolean = true)(
+    implicit
+    streamEv: Query[E, U, Seq] => BasicProfile#StreamingQueryActionExtensionMethods[Seq[U], U],
+    repToDBIO: Rep[Int] => BasicProfile#QueryActionExtensionMethods[Int, NoStream],
+    ec: ExecutionContext
+  ): QueryInfo = {
+    result(List(ColumnOrder(orderColumn, isDesc)))
+  }
+
+  def result(defaultOrders: List[ColumnOrder])(
+    implicit
+    streamEv: Query[E, U, Seq] => BasicProfile#StreamingQueryActionExtensionMethods[Seq[U], U],
+    repToDBIO: Rep[Int] => BasicProfile#QueryActionExtensionMethods[Int, NoStream],
+    ec: ExecutionContext
+  ): QueryInfo = {
     val result: SlickParam => DBIO[ResultGen] = slickParam => {
+      val autualOrders = defaultOrders ::: slickParam.orders
       val baseQuery = {
-        slickParam.orders.foldLeft(query) { case (eachQuery, ColumnOrder(eachOrderName, eachIsDesc)) =>
+        autualOrders.foldLeft(query) { case (eachQuery, ColumnOrder(eachOrderName, eachIsDesc)) =>
           orderMap.get(eachOrderName) match {
             case Some(convert) =>
               eachQuery.sortBy(s => {
@@ -192,5 +211,50 @@ object TestCompile extends App {
   }
 
   Await.result(db.run((permissionTq1.schema ++ catTq1.schema).drop), scala.concurrent.duration.Duration.Inf)
+
+  class CommonTable(colMap: Map[String, String], tbName: String, tag: slick.driver.H2Driver.api.Tag) extends Table[Long](tag, tbName) {
+    def id = column[Long]("ID", O.PrimaryKey, O.AutoInc)
+
+    val intColumns: Map[String, Rep[Int]] = colMap.collect { case (key, value) if value == "Int" => {
+      key -> column[Int](key)
+    } }
+
+    val stringColumns : Map[String, Rep[String]] = colMap.collect { case (key, value) if value == "String" => {
+      key -> column[String](key)
+    } }
+
+    def * = id
+  }
+
+  def genTable(tbName: String, colMap: Map[String, String]): TableQuery[CommonTable] = {
+    new TableQuery( cons => new CommonTable(colMap, tbName, cons))
+  }
+
+  val tq1 = genTable("tq1", Map(
+    "one_miao" -> "Int",
+    "one_wang" -> "String",
+    "one_ou" -> "String",
+    "one_hahahahaha" -> "Int"
+  ))
+
+  val tq2 = genTable("tq2", Map(
+    "two_miao" -> "Int",
+    "two_wang" -> "String",
+    "two_ou" -> "String",
+    "two_hahahahaha" -> "Int"
+  ))
+
+  /*println{
+    Await.result(db.run {
+      (tq1.schema ++ tq2.schema).create >>
+      //error here beacuse schema.create only create the id column
+      (for {
+        t1 <- tq1 if t1.stringColumns("one_wang") like "%%"
+        t2 <- tq2 if t1.intColumns("one_miao") === t2.intColumns("two_miao")
+      } yield {
+        (t1.id, t1.stringColumns("one_wang"), t1.stringColumns("one_ou"), t2.intColumns("two_hahahahaha"))
+      }).result
+    }, scala.concurrent.duration.Duration.Inf)
+  }*/
 
 }
