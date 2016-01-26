@@ -1,4 +1,4 @@
-package org.xarcher.ubw.wrapper
+package net.scalax.ubw.wrapper
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 
@@ -231,7 +231,7 @@ with OneInstancePerTest {
 
     def dd = from {
       (cat: CatTable, permission: PermissionTable) =>
-        org.xarcher.ubw.wrapper.select(
+        net.scalax.ubw.wrapper.select(
           permission.typeName as "喵了个咪",
           permission.name as "喵" order true,
           cat.wang as "十六夜的樱丘" order true,
@@ -278,7 +278,7 @@ with OneInstancePerTest {
     val bababbakkdk =
       Ubw.gfrom(
         (cat: CatTable, permission: PermissionTable) => {
-          org.xarcher.ubw.wrapper.gselect(
+          net.scalax.ubw.wrapper.gselect(
             cat.id.asQ asM (_.sum) as "喵喵喵喵喵11111111" order true,
             permission.id.asQ asM (_.avg) as "喵了个咪11111111" order true,
             permission.id.?.asQ asM (_.countDefined) as "喵了个咪11111111" order true

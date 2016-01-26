@@ -1,9 +1,9 @@
-package org.xarcher.ubw.helper
+package net.scalax.ubw.helper
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 
 import org.xarcher.cpoi.WriteableCellOperationAbs
-import org.xarcher.ubw.mapper.{QueryToUQueryExtensionMethods, SqlRep}
+import net.scalax.ubw.mapper.{QueryToUQueryExtensionMethods, SqlRep}
 
 import scala.reflect.runtime.universe._
 import slick.lifted.{FlatShapeLevel, Query, Shape}

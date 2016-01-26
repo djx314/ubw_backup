@@ -1,4 +1,4 @@
-package org.xarcher.ubw.wrapper
+package net.scalax.ubw.wrapper
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 import org.xarcher.cpoi.{CellData, WriteableCellOperationAbs}

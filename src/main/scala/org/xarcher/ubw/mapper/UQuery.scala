@@ -1,4 +1,4 @@
-package org.xarcher.ubw.mapper
+package net.scalax.ubw.mapper
 
 import slick.dbio._
 import slick.lifted._
@@ -195,7 +195,7 @@ object TestCompile extends App {
     case e: Exception => e.printStackTrace
   }
 
-  import org.xarcher.ubw._
+  import net.scalax.ubw._
 
   println{
     Await.result(db.run {
@@ -212,47 +212,29 @@ object TestCompile extends App {
 
   Await.result(db.run((permissionTq1.schema ++ catTq1.schema).drop), scala.concurrent.duration.Duration.Inf)
 
-  class CommonTable(colMap: Map[String, String], tbName: String, tag: slick.driver.H2Driver.api.Tag) extends Table[Long](tag, tbName) {
+  class CommonTable(tbName: String, tag: slick.driver.H2Driver.api.Tag) extends Table[Long](tag, tbName) {
     def id = column[Long]("ID", O.PrimaryKey, O.AutoInc)
-
-    val intColumns: Map[String, Rep[Int]] = colMap.collect { case (key, value) if value == "Int" => {
-      key -> column[Int](key)
-    } }
-
-    val stringColumns : Map[String, Rep[String]] = colMap.collect { case (key, value) if value == "String" => {
-      key -> column[String](key)
-    } }
 
     def * = id
   }
 
-  def genTable(tbName: String, colMap: Map[String, String]): TableQuery[CommonTable] = {
-    new TableQuery( cons => new CommonTable(colMap, tbName, cons))
+  def genTable(tbName: String): TableQuery[CommonTable] = {
+    new TableQuery(cons => new CommonTable(tbName, cons))
   }
 
-  val tq1 = genTable("tq1", Map(
-    "one_miao" -> "Int",
-    "one_wang" -> "String",
-    "one_ou" -> "String",
-    "one_hahahahaha" -> "Int"
-  ))
+  val tq1 = genTable("tq1")
 
-  val tq2 = genTable("tq2", Map(
-    "two_miao" -> "Int",
-    "two_wang" -> "String",
-    "two_ou" -> "String",
-    "two_hahahahaha" -> "Int"
-  ))
+  val tq2 = genTable("tq2")
 
   /*println{
     Await.result(db.run {
       (tq1.schema ++ tq2.schema).create >>
       //error here beacuse schema.create only create the id column
       (for {
-        t1 <- tq1 if t1.stringColumns("one_wang") like "%%"
-        t2 <- tq2 if t1.intColumns("one_miao") === t2.intColumns("two_miao")
+        t1 <- tq1 if t1.column[String]("one_wang") like "%%"
+        t2 <- tq2 if t1.column[Int]("one_miao") === t2.column[Int]("two_miao")
       } yield {
-        (t1.id, t1.stringColumns("one_wang"), t1.stringColumns("one_ou"), t2.intColumns("two_hahahahaha"))
+        (t1.id, t1.column[String]("one_wang"), t1.column[String]("one_ou"), t2.column[String]("two_hahahahaha"))
       }).result
     }, scala.concurrent.duration.Duration.Inf)
   }*/

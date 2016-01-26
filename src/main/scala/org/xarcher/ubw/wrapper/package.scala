@@ -1,4 +1,4 @@
-package org.xarcher.ubw
+package net.scalax.ubw
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 

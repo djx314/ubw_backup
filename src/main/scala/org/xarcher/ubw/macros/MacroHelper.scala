@@ -1,4 +1,4 @@
-package org.xarcher.ubw.macros
+package net.scalax.ubw.macros
 
 import scala.reflect.macros.blackbox.Context
 import scala.language.experimental.macros

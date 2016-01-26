@@ -1,4 +1,4 @@
-package org.xarcher.ubw.mapper
+package net.scalax.ubw.mapper
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 
@@ -108,7 +108,7 @@ with OneInstancePerTest {
   "aa" should "bb" in {
     println("123456" * 100)
 
-    /*import org.xarcher.ubw.mapper.Mapper._
+    /*import net.scalax.ubw.mapper.Mapper._
 
     println(
       db.run {

@@ -1,33 +1,33 @@
-package org.xarcher.ubw.helper
+package net.scalax.ubw.helper
 
 import slick.lifted._
 
 trait Alias {
-  type SlickRange = org.xarcher.ubw.mapper.SlickRange
-  val SlickRange = org.xarcher.ubw.mapper.SlickRange
+  type SlickRange = net.scalax.ubw.mapper.SlickRange
+  val SlickRange = net.scalax.ubw.mapper.SlickRange
 
-  type SlickPage = org.xarcher.ubw.mapper.SlickPage
-  val SlickPage = org.xarcher.ubw.mapper.SlickPage
+  type SlickPage = net.scalax.ubw.mapper.SlickPage
+  val SlickPage = net.scalax.ubw.mapper.SlickPage
 
-  type ColumnOrder = org.xarcher.ubw.mapper.ColumnOrder
-  val ColumnOrder = org.xarcher.ubw.mapper.ColumnOrder
+  type ColumnOrder = net.scalax.ubw.mapper.ColumnOrder
+  val ColumnOrder = net.scalax.ubw.mapper.ColumnOrder
 
-  type SlickParam = org.xarcher.ubw.mapper.SlickParam
-  val SlickParam = org.xarcher.ubw.mapper.SlickParam
+  type SlickParam = net.scalax.ubw.mapper.SlickParam
+  val SlickParam = net.scalax.ubw.mapper.SlickParam
 
-  type DataGen = org.xarcher.ubw.mapper.DataGen
-  val DataGen = org.xarcher.ubw.mapper.DataGen
+  type DataGen = net.scalax.ubw.mapper.DataGen
+  val DataGen = net.scalax.ubw.mapper.DataGen
 
-  type ResultGen = org.xarcher.ubw.mapper.ResultGen
-  val ResultGen = org.xarcher.ubw.mapper.ResultGen
+  type ResultGen = net.scalax.ubw.mapper.ResultGen
+  val ResultGen = net.scalax.ubw.mapper.ResultGen
 
-  type PropertyInfo = org.xarcher.ubw.mapper.PropertyInfo
-  val PropertyInfo = org.xarcher.ubw.mapper.PropertyInfo
+  type PropertyInfo = net.scalax.ubw.mapper.PropertyInfo
+  val PropertyInfo = net.scalax.ubw.mapper.PropertyInfo
 
-  type QueryInfo = org.xarcher.ubw.mapper.QueryInfo
-  val QueryInfo = org.xarcher.ubw.mapper.QueryInfo
+  type QueryInfo = net.scalax.ubw.mapper.QueryInfo
+  val QueryInfo = net.scalax.ubw.mapper.QueryInfo
 
-  type TableData = org.xarcher.ubw.mapper.TableData
-  val TableData = org.xarcher.ubw.mapper.TableData
+  type TableData = net.scalax.ubw.mapper.TableData
+  val TableData = net.scalax.ubw.mapper.TableData
 
 }

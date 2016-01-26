@@ -1,6 +1,6 @@
-package org.xarcher.ubw.macros
+package net.scalax.ubw.macros
 
-import org.xarcher.ubw.wrapper.{SqlWrapper, QueryInfo}
+import net.scalax.ubw.wrapper.{SqlWrapper, QueryInfo}
 
 import scala.reflect.macros.blackbox.Context
 import scala.language.experimental.macros
@@ -82,7 +82,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
                 val aa = q"""$x1.group_by_ext { $nameConvert }"""
                 this.transform((aa))*/
 
-              case q"""org.xarcher.ubw.wrapper.select.apply[..${_}](..$columns)""" =>
+              case q"""net.scalax.ubw.wrapper.select.apply[..${_}](..$columns)""" =>
                 val newColumns = (for {
                   eachColumn <- columns
                 } yield {
@@ -122,7 +122,7 @@ class UbwMacroImpl(override val c: Context) extends MacroUtils {
 
                 //println(columns)
                 //println(newColumns)
-                q"""org.xarcher.ubw.wrapper.select(..$newColumns)"""
+                q"""net.scalax.ubw.wrapper.select(..$newColumns)"""
 
               case other => {
                 super.transform(other)

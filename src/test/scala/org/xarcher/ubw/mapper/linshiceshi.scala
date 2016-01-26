@@ -1,4 +1,4 @@
-package org.xarcher.ubw.mapper
+package net.scalax.ubw.mapper
 
 import slick.driver.JdbcActionComponent
 import slick.lifted._
