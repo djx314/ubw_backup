@@ -257,4 +257,34 @@ object TestCompile extends App {
     }, scala.concurrent.duration.Duration.Inf)
   }*/
 
+  import scala.language.implicitConversions
+
+  trait Target[T]
+
+  object Target {
+    def apply[T] = {
+      new Target[T] {}
+    }
+  }
+
+  trait ListConvert[S, T] {
+    val convert: List[S] => List[T]
+  }
+
+  implicit def initConvert[S] = new ListConvert[S, S] {
+    override val convert: List[S] => List[S] = s => s
+  }
+
+  implicit def listListToListConvert[T, R](implicit hv: ListConvert[T, R]): ListConvert[List[T], R] = {
+    new ListConvert[List[T], R] {
+      override val convert: List[List[T]] => List[R] = s => hv.convert(s.flatten)
+    }
+  }
+
+  def unwrapList[S, T](source: List[S], target: Target[T])(implicit ev: ListConvert[S, T]): List[T] = {
+    ev.convert(source)
+  }
+
+  println(unwrapList(List(List(List(List(List(List(List(List("2333", "4567")))))))), Target[String]))
+
 }
