@@ -16,9 +16,9 @@ trait Implicits {
 
   }
 
-  implicit class miaolegemiRepExtensionMethod[R1](repLike: R1) {
+  implicit class ubwQueryRepExtensionMethod[R1, T1: WeakTypeTag, G1](repLike: R1)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1], jsonEncoder1: Encoder[T1], writeOperation: WriteableCellOperationAbs[T1]) {
 
-    def as[T1: WeakTypeTag, G1](columnName: String)(implicit shape1: Shape[_ <: FlatShapeLevel, R1, T1, G1], jsonEncoder1: Encoder[T1], writeOperation: WriteableCellOperationAbs[T1]): SqlRep[R1, T1, G1] = {
+    def as(columnName: String): SqlRep[R1, T1, G1] = {
       new SqlRep[R1, T1, G1] {
         override val valueTypeTag = implicitly[WeakTypeTag[T1]]
         override val proName = columnName
