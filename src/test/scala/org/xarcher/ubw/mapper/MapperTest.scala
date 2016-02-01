@@ -106,7 +106,6 @@ with OneInstancePerTest {
   }
 
   "aa" should "bb" in {
-    println("123456" * 100)
 
     /*import net.scalax.ubw.mapper.Mapper._
 

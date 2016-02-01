@@ -42,7 +42,7 @@ class QueryToUQueryExtensionMethods[E, U](val queryToExt: Query[E, U, Seq]) {
           })
         case _ => throw new IllegalArgumentException("不能解析 0 列的数据结果")
       }
-      val query2: Query[selectRep.TargetColType, selectRep.ValType, Seq] = Query(()).map(_ => selectRep.rep)(selectRep.shape)//Query(selectRep.rep)(selectRep.shape)
+      val query2: Query[selectRep.TargetColType, selectRep.ValType, Seq] =/*Query(()).map(_ => selectRep.rep)(selectRep.shape)*/Query(selectRep.rep)(selectRep.shape)
       val convert = (data: selectRep.ValType) => {
         DataGen(() => selectRep.listGen(data), () => selectRep.mapGen(data))
       }
