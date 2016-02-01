@@ -14,7 +14,83 @@ import slick.lifted._
 
 trait MapperHelper {
 
-  implicit class FilterIfNeedHelper[P1](rep1: Rep[P1]) {
+  case class RichBRep[P](rep: Option[Rep[P]]) {
+
+    def &&&[P2, R](rRep2: RichBRep[P2])
+      (implicit om: OptionMapperDSL.arg[Boolean, P]#arg[Boolean, P2]#to[Boolean, R], convertP: Rep[P] => Rep[R], convertP2: Rep[P2] => Rep[R]): RichBRep[R] = {
+      (rep -> rRep2.rep) match {
+        case (Some(subRep1), Some(subRep2)) =>
+          RichBRep(Option(new BooleanColumnExtensionMethods(subRep1).&&(subRep2)(om)))
+        case (None, Some(subRep2)) =>
+          RichBRep(Option(convertP2(subRep2)))
+        case (Some(subRep1), None) =>
+          RichBRep(Option(convertP(subRep1)))
+        case _ =>
+          RichBRep(None)
+      }
+    }
+
+    def |||[P2, R](rRep2: RichBRep[P2])
+      (implicit om: OptionMapperDSL.arg[Boolean, P]#arg[Boolean, P2]#to[Boolean, R], convertP: Rep[P] => Rep[R], convertP2: Rep[P2] => Rep[R]): RichBRep[R] = {
+      (rep -> rRep2.rep) match {
+        case (Some(subRep1), Some(subRep2)) =>
+          RichBRep(Option(new BooleanColumnExtensionMethods(subRep1).||(subRep2)(om)))
+        case (None, Some(subRep2)) =>
+          RichBRep(Option(convertP2(subRep2)))
+        case (Some(subRep1), None) =>
+          RichBRep(Option(convertP(subRep1)))
+        case _ =>
+          RichBRep(None)
+      }
+    }
+
+    def &&&[P2, R](when: Boolean, rRep2: Rep[P2])
+      (implicit om: OptionMapperDSL.arg[Boolean, P]#arg[Boolean, P2]#to[Boolean, R], convertP: Rep[P] => Rep[R], convertP2: Rep[P2] => Rep[R]): RichBRep[R] = {
+      if (when) {
+        &&&(RichBRep(Option(rRep2)))
+      } else {
+        &&&(RichBRep.empty[P2])
+      }
+    }
+
+    def |||[P2, R](when: Boolean, rRep2: Rep[P2])
+      (implicit om: OptionMapperDSL.arg[Boolean, P]#arg[Boolean, P2]#to[Boolean, R], convertP: Rep[P] => Rep[R], convertP2: Rep[P2] => Rep[R]): RichBRep[R] = {
+      if (when) {
+        |||(RichBRep(Option(rRep2)))
+      } else {
+        |||(RichBRep.empty[P2])
+      }
+    }
+
+    def &&&[P2, R](rRep2: Rep[P2])
+                  (implicit om: OptionMapperDSL.arg[Boolean, P]#arg[Boolean, P2]#to[Boolean, R], convertP: Rep[P] => Rep[R], convertP2: Rep[P2] => Rep[R]): RichBRep[R] = {
+      &&&(RichBRep(Option(rRep2)))
+    }
+
+    def |||[P2, R](rRep2: Rep[P2])
+                  (implicit om: OptionMapperDSL.arg[Boolean, P]#arg[Boolean, P2]#to[Boolean, R], convertP: Rep[P] => Rep[R], convertP2: Rep[P2] => Rep[R]): RichBRep[R] = {
+      |||(RichBRep(Option(rRep2)))
+    }
+
+    def result(implicit tt: TypedType[Boolean], convert: Rep[P] => Rep[Boolean]): Rep[Boolean] = rep match {
+      case Some(s) => convert(s)
+      case _ => LiteralColumn(true)(tt)
+    }
+
+  }
+
+  object RichBRep {
+    def empty[P] = RichBRep(Option.empty[Rep[P]])
+  }
+
+  implicit def booleanRepToRichRep[T](rep: Rep[T]): RichBRep[T] = RichBRep(Option(rep))
+  implicit def booleanNeedRepToRichRep[T](plus: (Boolean, Rep[T])): RichBRep[T] = if (plus._1) {
+    RichBRep(Option(plus._2))
+  } else {
+    RichBRep.empty[T]
+  }
+
+  /*implicit class FilterIfNeedHelper[P1](rep1: Rep[P1]) {
 
     @inline def &&&[P2, R](need: Boolean, rep2: Rep[P2])
       (implicit om: OptionMapperDSL.arg[Boolean, P1]#arg[Boolean, P2]#to[Boolean, R], convert: Rep[P1] => Rep[R]): Rep[R] = {
@@ -82,7 +158,7 @@ trait MapperHelper {
       new BooleanColumnExtensionMethods(rep1).unary_!
     }
 
-  }
+  }*/
 
 }
 

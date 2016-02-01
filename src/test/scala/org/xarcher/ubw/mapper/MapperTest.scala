@@ -100,7 +100,7 @@ with OneInstancePerTest {
   "omg" should "bb" in {
     println(
       db.run {
-        permissionTq1.filter(s => ((s.id > 123456L) &&& (false, s.name === "5678") ||| false) &&& (false, s.name === "1234") ||| (true, s.id > 2333L)).result
+        permissionTq1.filter(s => (((s.id > 123456L) &&& (false, s.name === "5678") ||| false) &&& (false, s.name === "1234") ||| (true, s.id > 2333L)).result).result
       }.futureValue(oneSecondTimeOut)
     )
   }
