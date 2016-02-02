@@ -1,4 +1,4 @@
-package org.xarcher.ubw.mapper
+package net.scalax.ubw.mapper
 
 import slick.dbio._
 import slick.lifted._
@@ -22,9 +22,28 @@ trait UQuery {
     repToDBIO: Rep[Int] => BasicProfile#QueryActionExtensionMethods[Int, NoStream],
     ec: ExecutionContext
   ): QueryInfo = {
+    result(Nil)
+  }
+
+  def result(orderColumn: String, isDesc: Boolean = true)(
+    implicit
+    streamEv: Query[E, U, Seq] => BasicProfile#StreamingQueryActionExtensionMethods[Seq[U], U],
+    repToDBIO: Rep[Int] => BasicProfile#QueryActionExtensionMethods[Int, NoStream],
+    ec: ExecutionContext
+  ): QueryInfo = {
+    result(List(ColumnOrder(orderColumn, isDesc)))
+  }
+
+  def result(defaultOrders: List[ColumnOrder])(
+    implicit
+    streamEv: Query[E, U, Seq] => BasicProfile#StreamingQueryActionExtensionMethods[Seq[U], U],
+    repToDBIO: Rep[Int] => BasicProfile#QueryActionExtensionMethods[Int, NoStream],
+    ec: ExecutionContext
+  ): QueryInfo = {
     val result: SlickParam => DBIO[ResultGen] = slickParam => {
+      val autualOrders = defaultOrders ::: slickParam.orders
       val baseQuery = {
-        slickParam.orders.foldLeft(query) { case (eachQuery, ColumnOrder(eachOrderName, eachIsDesc)) =>
+        autualOrders.foldLeft(query) { case (eachQuery, ColumnOrder(eachOrderName, eachIsDesc)) =>
           orderMap.get(eachOrderName) match {
             case Some(convert) =>
               eachQuery.sortBy(s => {
@@ -176,17 +195,78 @@ object TestCompile extends App {
     case e: Exception => e.printStackTrace
   }
 
+  import net.scalax.ubw._
+
   println{
     Await.result(db.run {
       (for {
-        permission <- permissionTq1.u if permission.describe like "%%"
-        cat <- catTq1.u if permission.id === cat.id
+        permission <- permissionTq1.ubw if permission.describe like "%%"
+        cat <- catTq1.ubw if permission.id === cat.id
       } yield {
         List(permission.typeName as "sdffdsfrett", cat.id as "喵喵喵喵" order true)
       }).result.dataGen(SlickParam(orders = List(ColumnOrder("喵喵喵喵", true)), page = Option(SlickPage(2, 10))))
     }, scala.concurrent.duration.Duration.Inf).data.map(s => s.list()).mkString("\n")
+
+    permissionTq1.ubw.uFlatMap(permission => catTq1.ubw.uMap(cat => cat.id -> permission.typeName))
   }
 
   Await.result(db.run((permissionTq1.schema ++ catTq1.schema).drop), scala.concurrent.duration.Duration.Inf)
+
+  class CommonTable(tbName: String, tag: slick.driver.H2Driver.api.Tag) extends Table[Long](tag, tbName) {
+    def id = column[Long]("ID", O.PrimaryKey, O.AutoInc)
+
+    def * = id
+  }
+
+  def genTable(tbName: String): TableQuery[CommonTable] = {
+    new TableQuery(cons => new CommonTable(tbName, cons))
+  }
+
+  val tq1 = genTable("tq1")
+
+  val tq2 = genTable("tq2")
+
+  /*println{
+    Await.result(db.run {
+      (tq1.schema ++ tq2.schema).create >>
+      //error here beacuse schema.create only create the id column
+      (for {
+        t1 <- tq1 if t1.column[String]("one_wang") like "%%"
+        t2 <- tq2 if t1.column[Int]("one_miao") === t2.column[Int]("two_miao")
+      } yield {
+        (t1.id, t1.column[String]("one_wang"), t1.column[String]("one_ou"), t2.column[String]("two_hahahahaha"))
+      }).result
+    }, scala.concurrent.duration.Duration.Inf)
+  }*/
+
+  import scala.language.implicitConversions
+
+  trait Target[T]
+
+  object Target {
+    def apply[T] = {
+      new Target[T] {}
+    }
+  }
+
+  trait ListConvert[S, T] {
+    val convert: List[S] => List[T]
+  }
+
+  implicit def initConvert[S] = new ListConvert[S, S] {
+    override val convert: List[S] => List[S] = s => s
+  }
+
+  implicit def listListToListConvert[T, R](implicit hv: ListConvert[T, R]): ListConvert[List[T], R] = {
+    new ListConvert[List[T], R] {
+      override val convert: List[List[T]] => List[R] = s => hv.convert(s.flatten)
+    }
+  }
+
+  def unwrapList[S, T](source: List[S], target: Target[T])(implicit ev: ListConvert[S, T]): List[T] = {
+    ev.convert(source)
+  }
+
+  println(unwrapList(List(List(List(List(List(List(List(List("2333", "4567")))))))), Target[String]))
 
 }

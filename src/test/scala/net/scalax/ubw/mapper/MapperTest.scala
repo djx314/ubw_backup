@@ -1,4 +1,4 @@
-package org.xarcher.ubw.mapper
+package net.scalax.ubw.mapper
 
 import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 
@@ -100,15 +100,14 @@ with OneInstancePerTest {
   "omg" should "bb" in {
     println(
       db.run {
-        permissionTq1.filter(s => ((s.id > 123456L) &&& (false, s.name === "5678") ||| false) &&& (false, s.name === "1234") ||| (true, s.id > 2333L)).result
+        permissionTq1.filter(s => (((s.id > 123456L) &&& (false, s.name === "5678") ||| false) &&& (false, s.name === "1234") ||| (true, s.id > 2333L)).result).result
       }.futureValue(oneSecondTimeOut)
     )
   }
 
   "aa" should "bb" in {
-    println("123456" * 100)
 
-    /*import org.xarcher.ubw.mapper.Mapper._
+    /*import net.scalax.ubw.mapper.Mapper._
 
     println(
       db.run {
