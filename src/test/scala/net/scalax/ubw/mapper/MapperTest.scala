@@ -10,10 +10,6 @@ import org.scalatest.time.{Millis, Span}
 import org.xarcher.cpoi.PoiOperations
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.language.existentials
-import scala.language.higherKinds
-import scala.language.implicitConversions
-import scala.language.postfixOps
 import slick.driver.H2Driver.api._
 
 /**
@@ -93,7 +89,7 @@ with OneInstancePerTest {
 
   object poiOperations extends PoiOperations
 
-  import MapperHelper._
+  import net.scalax.ubw.helper._
 
   import poiOperations._
 
