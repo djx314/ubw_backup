@@ -52,6 +52,16 @@ case class RichBRep[P](rep: Option[Rep[P]]) {
     }
   }
 
+  def &&&[P2, R](rRep2: Option[Rep[P2]])
+    (implicit om: OptionMapperDSL.arg[Boolean, P]#arg[Boolean, P2]#to[Boolean, R], convertP: Rep[P] => Rep[R], convertP2: Rep[P2] => Rep[R]): RichBRep[R] = {
+    &&&(RichBRep(rRep2))
+  }
+
+  def |||[P2, R](rRep2: Option[Rep[P2]])
+    (implicit om: OptionMapperDSL.arg[Boolean, P]#arg[Boolean, P2]#to[Boolean, R], convertP: Rep[P] => Rep[R], convertP2: Rep[P2] => Rep[R]): RichBRep[R] = {
+    |||(RichBRep(rRep2))
+  }
+
   def &&&[P2, R](rRep2: Rep[P2])
     (implicit om: OptionMapperDSL.arg[Boolean, P]#arg[Boolean, P2]#to[Boolean, R], convertP: Rep[P] => Rep[R], convertP2: Rep[P2] => Rep[R]): RichBRep[R] = {
     &&&(RichBRep(Option(rRep2)))
