@@ -18,7 +18,7 @@ __        __            _
    \_/\_/  \___/ |_|   |_|\_\|___/
 """
 println(initPrintln)
-scalaVersion := "2.11.7"}
+scalaVersion := "2.11.8"}
 
 scalacOptions ++= Seq("-feature", "-deprecation")
 
@@ -37,7 +37,7 @@ libraryDependencies ++= {
     "io.circe" %% "circe-generic" % circeV,
     "io.circe" %% "circe-parser" % circeV,
     //repl
-    "com.lihaoyi" % "ammonite-repl" % "0.4.8" % "test" cross CrossVersion.full,
+    "com.lihaoyi" % "ammonite-repl_2.11.7" % "0.5.6" % "test",
     //slick
     "com.github.tminglei" %% "slick-pg" % "0.11.2",
     "com.github.tminglei" %% "slick-pg_jts" % "0.11.2",
