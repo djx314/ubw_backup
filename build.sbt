@@ -32,10 +32,12 @@ externalResolvers := Resolver.withDefaultResolvers(resolvers.value, mavenCentral
 libraryDependencies ++= {
   val slickVersion = "3.1.1"
   val circeV = "0.3.0"
+  val shapelessVersion = "2.3.0"
   Seq(
     "io.circe" %% "circe-core" % circeV,
-    "io.circe" %% "circe-generic" % circeV,
+    "io.circe" %% "circe-generic" % circeV exclude("com.chuusai", "shapeless" + scalaBinaryVersion.value),
     "io.circe" %% "circe-parser" % circeV,
+    "com.chuusai" %% "shapeless" % shapelessVersion,
     //repl
     "com.lihaoyi" % "ammonite-repl_2.11.7" % "0.5.6" % "test",
     //slick
@@ -54,9 +56,9 @@ libraryDependencies ++= {
     "org.scalaz" %% "scalaz-core" % "7.2.0",
     "org.scalaz" %% "scalaz-effect" % "7.2.0",
     "org.scalaz" %% "scalaz-iteratee" % "7.2.0",
-    "org.scalaz" %% "scalaz-concurrent" % "7.2.0",
+    "org.scalaz" %% "scalaz-concurrent" % "7.2.0"//,
     //parboiled
-    "org.parboiled" %% "parboiled" % "2.1.1"
+    //"org.parboiled" %% "parboiled" % "2.1.1"
   )
 }
 
