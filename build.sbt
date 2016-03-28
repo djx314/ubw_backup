@@ -31,18 +31,19 @@ externalResolvers := Resolver.withDefaultResolvers(resolvers.value, mavenCentral
 
 libraryDependencies ++= {
   val slickVersion = "3.1.1"
-  val circeV = "0.3.0"
-  val shapelessVersion = "2.3.0"
+  val slickPgVersion = "0.12.0"
+  val circeV = "0.4.0-RC1"
+  //val shapelessVersion = "2.3.0"
   Seq(
     "io.circe" %% "circe-core" % circeV,
-    "io.circe" %% "circe-generic" % circeV exclude("com.chuusai", "shapeless" + scalaBinaryVersion.value),
+    "io.circe" %% "circe-generic" % circeV,//exclude("com.chuusai", "shapeless" + scalaBinaryVersion.value),
     "io.circe" %% "circe-parser" % circeV,
-    "com.chuusai" %% "shapeless" % shapelessVersion,
+    //"com.chuusai" %% "shapeless" % shapelessVersion,
     //repl
     "com.lihaoyi" % "ammonite-repl_2.11.7" % "0.5.6" % "test",
     //slick
-    "com.github.tminglei" %% "slick-pg" % "0.11.2",
-    "com.github.tminglei" %% "slick-pg_jts" % "0.11.2",
+    "com.github.tminglei" %% "slick-pg" % slickPgVersion,
+    "com.github.tminglei" %% "slick-pg_jts" % slickPgVersion,
     "com.typesafe.slick" %% "slick" % slickVersion,
     "com.typesafe.slick" %% "slick-hikaricp" % slickVersion exclude("com.zaxxer", "HikariCP-java6"),
     "org.scalatest" %% "scalatest" % "2.2.4" % "test",
