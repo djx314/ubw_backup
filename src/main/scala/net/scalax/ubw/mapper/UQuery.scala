@@ -60,7 +60,7 @@ trait UQuery {
       }
 
       slickParam match {
-        case SlickParam(_, Some(SlickRange(drop1, take1)), Some(SlickPage(pageIndex1, pageSize1))) =>
+        case SlickParam(_, Some(SlickRange(drop1, Some(take1))), Some(SlickPage(pageIndex1, pageSize1))) =>
           val startCount = Math.max(0, drop1)
           val pageIndex = Math.max(0, pageIndex1)
           val pageSize = Math.max(0, pageSize1)
@@ -87,7 +87,7 @@ trait UQuery {
             })
           })
             .flatMap(s => s)
-        case SlickParam(_, Some(SlickRange(drop, take)), None) =>
+        case SlickParam(_, Some(SlickRange(drop, Some(take))), None) =>
           val dropQuery = baseQuery.drop(drop)
           val takeQuery = dropQuery.take(take)
 
@@ -97,6 +97,44 @@ trait UQuery {
             })
             ResultGen(dataGen, s.size)
           })
+
+        case SlickParam(_, Some(SlickRange(drop1, None)), Some(SlickPage(pageIndex1, pageSize1))) =>
+          val startCount = Math.max(0, drop1)
+          val pageIndex = Math.max(0, pageIndex1)
+          val pageSize = Math.max(0, pageSize1)
+
+          val dropQuery = baseQuery.drop(startCount)
+
+          (for {
+            sum <- dropQuery.size.result
+          } yield {
+            /*val pageStart = startCount + pageIndex * pageSize
+            val pageEnd = pageStart + pageSize
+            val endCount = Math.min(take1, startCount + sum)
+            val autalStart = Math.max(pageStart, startCount)
+            val autalEnd = Math.min(pageEnd, endCount)
+            val autalLimit = Math.max(0, autalEnd - autalStart)*/
+
+            val limitQuery = dropQuery.drop(pageIndex * pageSize)//.take(autalLimit)
+
+            limitQuery.result.map(s => {
+              val dataGen = s.toList.map(t => {
+                resultConvert(t)
+              })
+              ResultGen(dataGen, sum)
+            })
+          })
+          .flatMap(s => s)
+        case SlickParam(_, Some(SlickRange(drop, None)), None) =>
+          val dropQuery = baseQuery.drop(drop)
+          //val takeQuery = dropQuery.take(take)
+          dropQuery.result.map(s => {
+            val dataGen = s.toList.map(t => {
+              resultConvert(t)
+            })
+            ResultGen(dataGen, s.size)
+          })
+
         case SlickParam(_, None, Some(SlickPage(pageIndex, pageSize))) =>
           val dropQuery = baseQuery.drop(pageIndex * pageSize)
           val takeQuery = dropQuery.take(pageSize)

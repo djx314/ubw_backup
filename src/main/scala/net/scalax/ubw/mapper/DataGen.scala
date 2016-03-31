@@ -5,7 +5,7 @@ import io.circe._, io.circe.generic.auto._, io.circe.syntax._
 import scala.concurrent.ExecutionContext
 import slick.dbio._
 
-case class SlickRange(drop: Long, take: Long)
+case class SlickRange(drop: Long, take: Option[Long])
 case class SlickPage(pageIndex: Long, pageSize: Long)
 case class ColumnOrder(columnName: String, isDesc: Boolean)
 
@@ -26,7 +26,7 @@ case class QueryInfo(properties: List[PropertyInfo], dataGen: SlickParam => DBIO
     )
   )
 
-  def toTableData(columnNames: List[(String, Boolean)], drop: Long, take: Long)(implicit ec: ExecutionContext): DBIO[TableData] = {
+  def toTableData(columnNames: List[(String, Boolean)], drop: Long, take: Option[Long])(implicit ec: ExecutionContext): DBIO[TableData] = {
     val orders = columnNames.map(s => ColumnOrder(columnName = s._1, isDesc = s._2))
     toTableData(SlickParam(orders = orders, range = Option(SlickRange(drop, take))))
   }
